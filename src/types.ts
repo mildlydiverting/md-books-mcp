@@ -18,6 +18,8 @@ export interface Book {
   /** BCP-47 / ISO 639-1 code, e.g. "en". */
   language?: string;
   coverUrl?: string;
+  /** Ids for the same book in other systems, keyed by scheme (wikidata, openlibrary...). */
+  identifiers?: Record<string, string>;
   /** Page for this book on the source's own site. */
   sourceUrl?: string;
 }
@@ -64,6 +66,11 @@ export interface BookProvider {
   readonly name: string;
   /** One line shown by list_sources: what this source is good for. */
   readonly strengths: string;
+  /**
+   * Set false for authority sources that should only answer book searches when asked
+   * for by name (source: "..."), not in the default fan-out. Defaults to true.
+   */
+  readonly bookSearchByDefault?: boolean;
   /** Whether it can be queried right now, e.g. a required key is present. */
   isAvailable(): boolean;
   /** Shown by list_sources when isAvailable() is false. */

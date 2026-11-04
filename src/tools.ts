@@ -41,6 +41,7 @@ function detail(b: Book): string {
     b.pageCount ? `**Pages:** ${b.pageCount}` : "",
     b.language ? `**Language:** ${b.language}` : "",
     b.subjects?.length ? `**Subjects:** ${b.subjects.join("; ")}` : "",
+    b.identifiers ? `**Identifiers:** ${Object.entries(b.identifiers).map(([k, v]) => `${k}: ${v}`).join("; ")}` : "",
     b.sourceUrl ? `**Source page:** ${b.sourceUrl}` : "",
     b.coverUrl ? `**Cover:** ${b.coverUrl}` : "",
     b.description ? `\n${b.description}` : "",
@@ -92,14 +93,14 @@ function authorProviders(source: string | undefined): (BookProvider & Required<P
   return capable;
 }
 
-function pickProviders(source: string | undefined): BookProvider[] | string {
+function pickProviders(source: string | undefined, forBooks = false): BookProvider[] | string {
   if (source) {
     const p = getProvider(source);
     if (!p) return `Unknown source "${source}". Known sources: ${providers.map((x) => x.id).join(", ")}.`;
     if (!p.isAvailable()) return `Source "${source}" is not available. ${p.unavailableReason?.() ?? ""}`.trim();
     return [p];
   }
-  const available = availableProviders();
+  const available = availableProviders().filter((p) => !forBooks || p.bookSearchByDefault !== false);
   if (available.length === 0) {
     return `No book sources are configured. ${providers.map((p) => `${p.id}: ${p.unavailableReason?.() ?? "unavailable"}`).join(" ")}`;
   }
@@ -110,7 +111,7 @@ function pickProviders(source: string | undefined): BookProvider[] | string {
 async function resolveBook(args: { source?: string; id?: string; isbn?: string }): Promise<Book | string> {
   if (args.isbn) {
     if (!isValidIsbn(args.isbn)) return `"${args.isbn}" is not a valid ISBN-10 or ISBN-13 (checksum failed). Check for a typo.`;
-    const chosen = pickProviders(args.source);
+    const chosen = pickProviders(args.source, true);
     if (typeof chosen === "string") return chosen;
     for (const p of chosen) {
       const hits = await p.searchBooks({ isbn: cleanIsbn(args.isbn), limit: 1 });
@@ -152,7 +153,7 @@ export function registerTools(server: McpServer): void {
         title: z.string().optional().describe("Words from the title"),
         author: z.string().optional().describe("Author name"),
         isbn: z.string().optional().describe("ISBN-10 or ISBN-13; hyphens allowed"),
-        source: z.string().optional().describe("Restrict to one source id (see list_sources). Default: all available."),
+        source: z.string().optional().describe("Restrict to one source id (see list_sources). Default: all general book sources; authority sources such as wikidata are used only when named."),
         limit: z.number().int().min(1).max(20).default(5).describe("Maximum results per source"),
       }),
       annotations: readOnly,
@@ -161,7 +162,7 @@ export function registerTools(server: McpServer): void {
       guard(async () => {
         if (!query && !title && !author && !isbn) return fail("Give at least one of query, title, author or isbn.");
         if (isbn && !isValidIsbn(isbn)) return fail(`"${isbn}" is not a valid ISBN-10 or ISBN-13 (checksum failed). Check for a typo.`);
-        const chosen = pickProviders(source);
+        const chosen = pickProviders(source, true);
         if (typeof chosen === "string") return fail(chosen);
 
         const settled = await Promise.allSettled(

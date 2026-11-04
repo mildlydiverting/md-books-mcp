@@ -18,9 +18,10 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 | `source` id | Key | Notes |
 | --- | --- | --- |
 | `openlibrary` | none | Title and author searches return *works* (first-publication year, no publisher or ISBN). An ISBN lookup returns the specific *edition* with publisher and date, so use an ISBN when you need a citation. Optional: set `OPENLIBRARY_CONTACT` (an email or URL) to be identified and get a higher rate limit. |
+| `wikidata` | none | Authority data: author identifiers (VIAF, ISNI, Library of Congress, Open Library, BookBrainz), plus notable works and editions that link to Open Library ids. Strict rate limits, so it is left out of default book searches: ask for it with `source: "wikidata"`. Author searches include it. No ISBN search. Optional `WIKIDATA_CONTACT`. |
 | `googlebooks` | required | Editions with publisher, ISBNs, descriptions and covers. |
 
-Searches without a `source` fan out to every available source.
+Book searches without a `source` fan out to every available general source (not `wikidata`). Author searches fan out to every source that has author records.
 
 ## Setup
 
@@ -62,7 +63,6 @@ Tools, citations and the search fan-out pick it up with no other changes. A sour
 
 | Source | Notes |
 | --- | --- |
-| Wikidata | No key. Authority data and author identifiers. |
 | Hardcover | Free key, GraphQL. |
 | BookBrainz | Open metadata; check API status first. |
 | WorldCat, ISBNdb | Paid or institutional keys. |

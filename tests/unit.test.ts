@@ -101,3 +101,32 @@ describe("open library authors", async () => {
     expect(a.photoUrl).toBe("https://covers.openlibrary.org/b/id/42-M.jpg");
   });
 });
+
+describe("wikidata mapping", async () => {
+  const { formatTime, entityToAuthor, entityToBook } = await import("../src/providers/wikidata.js");
+  const claim = (value: unknown) => ({ mainsnak: { datavalue: { value } } });
+  it("formats dates by precision", () => {
+    expect(formatTime({ time: "+1929-10-21T00:00:00Z", precision: 11 })).toBe("1929-10-21");
+    expect(formatTime({ time: "+1969-03-00T00:00:00Z", precision: 10 })).toBe("1969-03");
+    expect(formatTime({ time: "+1815-00-00T00:00:00Z", precision: 9 })).toBe("1815");
+    expect(formatTime({ time: "+1800-00-00T00:00:00Z", precision: 8 })).toBeUndefined();
+  });
+  it("maps an author with cross-system identifiers", () => {
+    const a = entityToAuthor({
+      id: "Q181659",
+      labels: { en: { value: "Ursula K. Le Guin" } },
+      descriptions: { en: { value: "American author" } },
+      claims: { P214: [claim("101734435")], P648: [claim("OL31353A")], P569: [claim({ time: "+1929-10-21T00:00:00Z", precision: 11 })] },
+    });
+    expect(a).toMatchObject({ id: "Q181659", birthDate: "1929-10-21", bio: "American author" });
+    expect(a.identifiers).toEqual({ wikidata: "Q181659", viaf: "101734435", openlibrary: "OL31353A" });
+  });
+  it("maps a book and resolves author names", () => {
+    const b = entityToBook(
+      { id: "Q2008211", labels: { en: { value: "The Left Hand of Darkness" } }, claims: { P50: [claim({ id: "Q181659" })], P648: [claim("OL59864W")] } },
+      new Map([["Q181659", "Ursula K. Le Guin"]]),
+    );
+    expect(b.authors).toEqual(["Ursula K. Le Guin"]);
+    expect(b.identifiers).toEqual({ wikidata: "Q2008211", openlibrary: "OL59864W" });
+  });
+});
