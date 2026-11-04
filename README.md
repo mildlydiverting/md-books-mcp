@@ -19,6 +19,7 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 | --- | --- | --- |
 | `openlibrary` | none | Title and author searches return *works* (first-publication year, no publisher or ISBN). An ISBN lookup returns the specific *edition* with publisher and date, so use an ISBN when you need a citation. Optional: set `OPENLIBRARY_CONTACT` (an email or URL) to be identified and get a higher rate limit. |
 | `wikidata` | none | Authority data: author identifiers (VIAF, ISNI, Library of Congress, Open Library, BookBrainz), plus notable works and editions that link to Open Library ids. Strict rate limits, so it is left out of default book searches: ask for it with `source: "wikidata"`. Author searches include it. No ISBN search. Optional `WIKIDATA_CONTACT`. |
+| `hardcover` | required (free) | Community catalogue, good on recent and genre fiction. Needs `HARDCOVER_API_TOKEN` (Hardcover account → Settings → Hardcover API → New API Key; the `read:catalog` scope is enough). Free tier: 60 requests a minute, 5,000 a day. Searches return works; lookups by id add the default print edition's publisher and ISBNs. Written from the docs and not yet run against the live API. Hardcover's terms bar using the API to train publicly available or commercial LLMs, and bar commercial use of user data; this server only reads catalogue data, for personal use. |
 | `googlebooks` | required | Editions with publisher, ISBNs, descriptions and covers. |
 
 Book searches without a `source` fan out to every available general source (not `wikidata`). Author searches fan out to every source that has author records.
@@ -32,7 +33,7 @@ Open Library works with no setup. Google Books needs an API key. Keyless request
 
 ```bash
 npm install && npm run build
-claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -- node /Users/kimplowright/Development/mcp-google-books/dist/index.js
+claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_TOKEN=your-token -- node /Users/kimplowright/Development/mcp-google-books/dist/index.js
 ```
 
 Claude Desktop (`claude_desktop_config.json`):
@@ -43,7 +44,7 @@ Claude Desktop (`claude_desktop_config.json`):
     "books": {
       "command": "node",
       "args": ["/Users/kimplowright/Development/mcp-google-books/dist/index.js"],
-      "env": { "GOOGLE_BOOKS_API_KEY": "your-key" }
+      "env": { "GOOGLE_BOOKS_API_KEY": "your-key", "HARDCOVER_API_TOKEN": "your-token" }
     }
   }
 }
@@ -63,7 +64,6 @@ Tools, citations and the search fan-out pick it up with no other changes. A sour
 
 | Source | Notes |
 | --- | --- |
-| Hardcover | Free key, GraphQL. |
 | BookBrainz | Open metadata; check API status first. |
 | WorldCat, ISBNdb | Paid or institutional keys. |
 | Biblio, Bookshop.org, World of Books | No public API found; terms need checking before any scraping. |

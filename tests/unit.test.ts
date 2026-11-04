@@ -130,3 +130,34 @@ describe("wikidata mapping", async () => {
     expect(b.identifiers).toEqual({ wikidata: "Q2008211", openlibrary: "OL59864W" });
   });
 });
+
+describe("hardcover mapping", async () => {
+  const { searchDocToBook, recordToBook, authorDocToAuthor, authorRecordToAuthor, hitsOf, buildSearchText } = await import("../src/providers/hardcover.js");
+  it("maps a search hit without guessing an edition's ISBN", () => {
+    const b = searchDocToBook({ id: "123", title: "Emma", author_names: ["Jane Austen"], release_year: 1815, isbns: ["9780141439587", "0141439580"], slug: "emma", image: { url: "https://x/y.jpg" } });
+    expect(b).toMatchObject({ source: "hardcover", id: "123", publishedDate: "1815", sourceUrl: "https://hardcover.app/books/emma", identifiers: { hardcover: "123" } });
+    expect(b.isbn13).toBeUndefined();
+  });
+  it("keeps the ISBN the caller asked for if the book has it", () => {
+    expect(searchDocToBook({ id: 1, isbns: ["9780141439587"] }, "978-0-14-143958-7").isbn13).toBe("9780141439587");
+  });
+  it("maps a book record with edition details", () => {
+    const b = recordToBook({ id: 9, title: "Project Hail Mary", contributions: [{ author: { name: "Andy Weir" } }, { author: { name: "Andy Weir" } }], default_physical_edition: { isbn_13: "9780593135204", publisher: { name: "Ballantine" }, release_date: "2021-05-04", pages: 476 } });
+    expect(b).toMatchObject({ authors: ["Andy Weir"], publisher: "Ballantine", isbn13: "9780593135204", publishedDate: "2021-05-04", pageCount: 476 });
+  });
+  it("maps authors and flattens string identifiers", () => {
+    expect(authorDocToAuthor({ id: 5, name: "Andy Weir", books: ["The Martian"], books_count: 12, slug: "andy-weir" })).toMatchObject({ id: "5", topWork: "The Martian", sourceUrl: "https://hardcover.app/authors/andy-weir" });
+    const a = authorRecordToAuthor({ id: 5, name: "Andy Weir", born_year: 1972, identifiers: { VIAF: "123", nested: { x: 1 } } });
+    expect(a.birthDate).toBe("1972");
+    expect(a.identifiers).toEqual({ hardcover: "5", viaf: "123" });
+  });
+  it("reads Typesense results as object or string", () => {
+    const body = { hits: [{ document: { id: "1" } }, { document: { id: "2" } }] };
+    expect(hitsOf(body)).toHaveLength(2);
+    expect(hitsOf(JSON.stringify(body))).toHaveLength(2);
+    expect(hitsOf(undefined)).toEqual([]);
+  });
+  it("joins query parts", () => {
+    expect(buildSearchText({ title: "Emma", author: "Austen", limit: 5 })).toBe("Emma Austen");
+  });
+});

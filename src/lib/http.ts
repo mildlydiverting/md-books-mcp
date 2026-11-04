@@ -20,15 +20,15 @@ export interface JsonOptions {
   headers?: Record<string, string>;
 }
 
-/** GET a URL and parse the body as JSON. Never put secrets in the message. */
-export async function getJson<T = unknown>(url: string, options: JsonOptions = {}): Promise<T> {
+async function requestJson<T>(url: string, init: RequestInit, options: JsonOptions): Promise<T> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
+      ...init,
       signal: controller.signal,
-      headers: { Accept: "application/json", "User-Agent": USER_AGENT, ...options.headers },
+      headers: { Accept: "application/json", "User-Agent": USER_AGENT, ...init.headers, ...options.headers },
     });
     if (!res.ok) {
       throw new HttpError(`Request failed with status ${res.status} ${res.statusText}`, res.status);
@@ -43,4 +43,14 @@ export async function getJson<T = unknown>(url: string, options: JsonOptions = {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** GET a URL and parse the body as JSON. Never put secrets in error messages. */
+export function getJson<T = unknown>(url: string, options: JsonOptions = {}): Promise<T> {
+  return requestJson<T>(url, {}, options);
+}
+
+/** POST a JSON body and parse the response as JSON. */
+export function postJson<T = unknown>(url: string, body: unknown, options: JsonOptions = {}): Promise<T> {
+  return requestJson<T>(url, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } }, options);
 }
