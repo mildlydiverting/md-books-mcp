@@ -5,7 +5,7 @@ import type { Author, Book, BookProvider, BookQuery } from "../types.js";
 // Written from Hardcover's published docs (docs.hardcover.app); not yet run against the live API.
 
 const ENDPOINT = "https://api.hardcover.app/v1/graphql";
-const TOKEN_ENV = "HARDCOVER_API_TOKEN";
+const TOKEN_ENV = "HARDCOVER_API_KEY";
 const SITE = "https://hardcover.app";
 
 interface HcImage {
