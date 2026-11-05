@@ -70,7 +70,7 @@ interface OlAuthor {
 
 function headers(): Record<string, string> {
   const contact = process.env[CONTACT_ENV]?.trim();
-  return { "User-Agent": `books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
+  return { "User-Agent": `md-books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
 }
 
 const workId = (key: string): string => key.replace(/^\/works\//, "");

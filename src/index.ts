@@ -7,7 +7,7 @@ import { VERSION } from "./version.js";
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   process.stdout.write(
     [
-      `books-mcp ${VERSION}`,
+      `md-books-mcp ${VERSION}`,
       "",
       "An MCP server for finding books and making citations.",
       "Speaks stdio; run it from an MCP client rather than directly.",
@@ -19,10 +19,10 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
   );
 } else {
   serveStdio(() => {
-    const server = new McpServer({ name: "books-mcp", version: VERSION });
+    const server = new McpServer({ name: "md-books-mcp", version: VERSION });
     registerTools(server);
     return server;
   });
   // stdout carries the protocol; diagnostics go to stderr.
-  console.error(`books-mcp ${VERSION} running on stdio`);
+  console.error(`md-books-mcp ${VERSION} running on stdio`);
 }

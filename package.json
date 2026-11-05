@@ -1,11 +1,11 @@
 {
-  "name": "books-mcp",
+  "name": "md-books-mcp",
   "version": "0.1.0",
   "description": "MCP server for finding books and making citations, with pluggable data sources (Google Books first)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "books-mcp": "dist/index.js"
+    "md-books-mcp": "dist/index.js"
   },
   "files": [
     "dist",

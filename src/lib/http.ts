@@ -1,7 +1,7 @@
 import { VERSION } from "../version.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
-const USER_AGENT = `books-mcp/${VERSION} (MCP server)`;
+const USER_AGENT = `md-books-mcp/${VERSION} (MCP server)`;
 
 /** Carries a message written for the model: what went wrong and what to try. */
 export class HttpError extends Error {

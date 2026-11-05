@@ -1,4 +1,4 @@
-# books-mcp
+# md-books-mcp
 
 An [MCP](https://modelcontextprotocol.io) server for finding books and making citations, so agents can look up books and authors mentioned in notes. Runs locally over stdio. Built on the v2 TypeScript SDK, which implements the [2026-07-28 spec](https://modelcontextprotocol.io/specification/2026-07-28).
 
@@ -33,7 +33,7 @@ Open Library works with no setup. Google Books needs an API key. Keyless request
 
 ```bash
 npm install && npm run build
-claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -- node /Users/kimplowright/Development/mcp-google-books/dist/index.js
+claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -- node /Users/kimplowright/Development/md-books-mcp/dist/index.js
 ```
 
 Claude Desktop (`claude_desktop_config.json`):
@@ -43,7 +43,7 @@ Claude Desktop (`claude_desktop_config.json`):
   "mcpServers": {
     "books": {
       "command": "node",
-      "args": ["/Users/kimplowright/Development/mcp-google-books/dist/index.js"],
+      "args": ["/Users/kimplowright/Development/md-books-mcp/dist/index.js"],
       "env": { "GOOGLE_BOOKS_API_KEY": "your-key", "HARDCOVER_API_KEY": "your-key" }
     }
   }

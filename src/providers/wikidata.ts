@@ -49,7 +49,7 @@ interface TimeValue {
 
 function headers(): Record<string, string> {
   const contact = process.env[CONTACT_ENV]?.trim();
-  return { "User-Agent": `books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
+  return { "User-Agent": `md-books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
 }
 
 /** Wikidata asks for serial requests, so every call waits its turn and leaves a short gap. */
