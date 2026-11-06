@@ -2,6 +2,7 @@ import * as z from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { CITATION_STYLES, STYLES_WITH_PLACE, formatCitation } from "./lib/citation.js";
 import { cleanIsbn, isValidIsbn } from "./lib/isbn.js";
+import { buildLinks, loadSites } from "./lib/links.js";
 import { availableProviders, getProvider, providers } from "./providers/index.js";
 import type { Author, Book, BookProvider } from "./types.js";
 
@@ -141,6 +142,35 @@ export function registerTools(server: McpServer): void {
           .map((p) => `- \`${p.id}\` — ${p.name}: ${p.strengths} ${p.isAvailable() ? "**Available.**" : `**Unavailable.** ${p.unavailableReason?.() ?? ""}`}`)
           .join("\n"),
       ),
+  );
+
+  server.registerTool(
+    "find_elsewhere",
+    {
+      description:
+        "Get ready-made search links for shops, libraries and catalogues that have no usable API (Biblio, Bookshop.org UK, World of Books, WorldCat and others). Nothing is fetched: this returns URLs to open in a browser, so it is instant and costs no requests. Pass an ISBN for the most precise links, or a title and author. Sites can be added or changed in the user's links file.",
+      inputSchema: z.object({
+        isbn: z.string().optional().describe("ISBN-10 or ISBN-13; hyphens allowed"),
+        title: z.string().optional().describe("Words from the title"),
+        author: z.string().optional().describe("Author name"),
+        query: z.string().optional().describe("Free-text search"),
+        sites: z.array(z.string()).optional().describe("Only these site ids (for example [\"biblio\", \"worldcat\"]). Default: every site that can handle the input."),
+      }),
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async ({ isbn, title, author, query, sites }) =>
+      guard(async () => {
+        if (!isbn && !title && !author && !query) return fail("Give at least one of isbn, title, author or query.");
+        if (isbn && !isValidIsbn(isbn)) return fail(`"${isbn}" is not a valid ISBN-10 or ISBN-13 (checksum failed). Check for a typo.`);
+        const { sites: all, warnings } = loadSites();
+        const wanted = sites?.length ? all.filter((s) => sites.includes(s.id)) : all;
+        if (sites?.length && wanted.length === 0) return fail(`No site matches ${sites.join(", ")}. Available ids: ${all.map((s) => s.id).join(", ")}.`);
+        const links = buildLinks(wanted, { isbn: isbn ? cleanIsbn(isbn) : undefined, title, author, text: query });
+        if (links.length === 0) return fail("None of the selected sites can handle that input. Try an ISBN, or a title or author.");
+        const lines = links.map((l) => `- [${l.name}](${l.url})${l.note ? ` — ${l.note}` : ""} · \`${l.id}\``);
+        const note = warnings.length ? `\n\nLinks file: ${warnings.join(" ")}` : "";
+        return text(`${lines.join("\n")}${note}`, { links, warnings });
+      }),
   );
 
   server.registerTool(

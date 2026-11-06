@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All seven sources are verified against live data. 40 unit tests pass.
+All seven sources are verified against live data. 45 unit tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -20,10 +20,10 @@ It is registered and tested in Claude Code and Claude Desktop.
 
 | Piece | Where |
 |---|---|
-| Tools: `list_sources`, `search_books`, `get_book`, `format_citation`, `search_authors`, `get_author` | `src/tools.ts` |
+| Tools: `list_sources`, `find_elsewhere`, `search_books`, `get_book`, `format_citation`, `search_authors`, `get_author` | `src/tools.ts` |
 | Provider interface and source-agnostic `Book` / `Author` models | `src/types.ts` |
 | One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `bookbrainz`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
-| Shared HTTP, ISBN and citation helpers | `src/lib/` |
+| Shared HTTP, ISBN, citation, pacing, language and search-link helpers | `src/lib/` |
 | Citation styles: APA, MLA, Chicago, BibTeX | `src/lib/citation.ts` |
 | Tests | `tests/unit.test.ts` |
 
@@ -56,12 +56,13 @@ Suggested order. Kim approves each step before it starts.
    exercised over raw stdio and in a smoke test.
 3. Tune the results: Hardcover returns junk such as study guides, and the
    fan-out merge is a plain concatenation with no de-duplication across sources.
-4. Further sources, roughly easiest first:
+4. Check the unverified search-link patterns and add Kim's local library.
+5. Further sources, roughly easiest first:
    - Local libraries.
    - WorldCat and ISBNdb need paid or institutional keys.
    - Biblio, Bookshop.org UK and World of Books have no public API found.
      Check terms before any scraping.
-5. Optional: publish to npm so `npx` works.
+6. Optional: publish to npm so `npx` works.
 
 ## Things to look out for
 
@@ -94,6 +95,13 @@ Suggested order. Kim approves each step before it starts.
   6 s. `type=edition` and `type=author` work in lower case. Dates look like
   `+001929-10-21` (see `bbDate`). Edition detail uses `authorCredits`
   (the spec says `authorCredit`).
+- **Search links** (`find_elsewhere`, `src/lib/links.ts`) are the answer for sites
+  with no API or a bot check (Biblio, Bookshop.org UK, World of Books,
+  WorldCat). Templates only; nothing is fetched. Kim can add sites in
+  `~/.config/md-books-mcp/links.json` (example in `links.example.json`). Bookshop,
+  WorldCat and Hardcover URL patterns are unverified because they block scripts:
+  ask Kim to click each once. Biblio's pattern came from Kim. Her local library
+  catalogue is not added yet; it needs its search URL.
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out
   (`bookSearchByDefault: false`). Test it one call at a time.

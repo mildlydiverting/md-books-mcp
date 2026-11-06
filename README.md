@@ -11,6 +11,7 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 - **`get_book`** `{ source, id }` or `{ isbn }`: full record.
 - **`search_authors`** `{ name, source?, limit? }`: life dates, best-known work, work count. Only sources with real author records (currently Open Library) take part.
 - **`get_author`** `{ source, id }`: bio, name variants and identifiers in other systems (Wikidata, VIAF, ISNI, Library of Congress, BookBrainz), which is how records from different sources will be joined.
+- **`find_elsewhere`** `{ isbn }` or `{ title, author }`: ready-made search links for shops, libraries and catalogues with no usable API (Biblio, Bookshop.org UK, World of Books, WorldCat and more). Nothing is fetched, so it is instant; the links open in a browser. See *Search links* below
 - **`format_citation`** `{ style, source, id }` or `{ style, isbn }`: APA 7, MLA 9, Chicago, Harvard (Cite Them Right) or BibTeX. Harvard and Chicago print the place of publication when the record already has it (Open Library editions, Library of Congress, Crossref); the server never makes an extra request to find it, and tells the agent to ask you first if it is missing. Author names are split by a simple rule (last word, plus particles like "Le" or "van"), so check unusual names by eye.
 
 ## Sources
@@ -62,6 +63,16 @@ Try it with the Inspector: `npm run inspect`.
 3. Import it and add it to the list in `src/providers/index.ts`.
 
 Tools, citations and the search fan-out pick it up with no other changes. A source whose `isAvailable()` is false (a missing key, say) is skipped quietly and explained by `list_sources`.
+
+## Search links
+
+`find_elsewhere` fills in URL templates for sites that have no API, or that block scripts with a bot check (Biblio does). It never fetches the page, so there is no scraping and no extra request; you or an agent with a browser open the link.
+
+- With an ISBN, a site needs an `isbnUrl`. With a title, author or free text, it needs a `queryUrl`.
+- Templates can use `{isbn}`, `{title}`, `{author}` and `{query}` (title, author and free text joined). Values are URL-encoded.
+- Built-in sites are in `src/lib/links.ts`. Patterns marked "unverified" were blocked to scripts, so check them once in a browser and correct them in your file if needed.
+
+To add or change sites, create `~/.config/md-books-mcp/links.json` (or point `MD_BOOKS_LINKS_FILE` at another path). Start from [`links.example.json`](links.example.json). An entry with a built-in `id` changes only the fields you give; a new `id` adds a site; `"disabled": true` hides one. A problem in the file is reported in the tool's output and the built-in sites still work. The file is read on each call, so edits apply without a restart.
 
 ## Planned sources
 

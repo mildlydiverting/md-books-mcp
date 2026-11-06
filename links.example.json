@@ -1,0 +1,11 @@
+[
+  {
+    "id": "kent-libraries",
+    "name": "Kent Libraries",
+    "note": "Replace the URLs with your library catalogue's search address",
+    "isbnUrl": "https://example.org/catalogue/search?q={isbn}",
+    "queryUrl": "https://example.org/catalogue/search?q={query}"
+  },
+  { "id": "worldcat", "disabled": true },
+  { "id": "biblio", "note": "Your note replaces the built-in one; other fields stay" }
+]

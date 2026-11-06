@@ -354,3 +354,46 @@ describe("bookbrainz mapping", async () => {
     expect(searchText({ title: "Emma", author: "Austen", limit: 3 })).toBe("Emma Austen");
   });
 });
+
+describe("search links", async () => {
+  const { DEFAULT_SITES, buildLinks, fillTemplate, mergeSites } = await import("../src/lib/links.js");
+  it("fills templates with encoded values", () => {
+    expect(fillTemplate("https://x/?q={query}&a={author}", { isbn: "", title: "", author: "Le Guin", query: "The Dispossessed & more" })).toBe(
+      "https://x/?q=The%20Dispossessed%20%26%20more&a=Le%20Guin",
+    );
+  });
+  it("gives ISBN links only to sites that have an isbnUrl", () => {
+    const links = buildLinks(DEFAULT_SITES, { isbn: "9780060125639" });
+    const byId = Object.fromEntries(links.map((l) => [l.id, l.url]));
+    expect(byId.biblio).toBe("https://biblio.co.uk/booksearch/keyisbn/9780060125639");
+    expect(byId.hardcover).toBe("https://hardcover.app/search?q=9780060125639");
+    expect(byId.bookbrainz).toBeUndefined(); // name search only, so no ISBN link
+    expect(buildLinks(DEFAULT_SITES, { isbn: "9780060125639", title: "The Dispossessed" }).map((l) => l.id)).toContain("bookbrainz");
+  });
+  it("skips sites that cannot handle the input", () => {
+    const ids = buildLinks(DEFAULT_SITES, { title: "The Dispossessed", author: "Le Guin" }).map((l) => l.id);
+    expect(ids).not.toContain("biblio"); // ISBN only
+    expect(ids).toContain("worldcat");
+    expect(buildLinks(DEFAULT_SITES, {})).toEqual([]);
+  });
+  it("merges a user file over the built-ins", () => {
+    const { sites, warnings } = mergeSites(
+      JSON.stringify([
+        { id: "biblio", isbnUrl: "https://example.org/isbn/{isbn}" },
+        { id: "worldcat", disabled: true },
+        { id: "kent-libraries", name: "Kent Libraries", queryUrl: "https://example.org/search?q={query}" },
+      ]),
+    );
+    expect(warnings).toEqual([]);
+    expect(sites.find((s) => s.id === "biblio")).toMatchObject({ name: "Biblio (UK)", isbnUrl: "https://example.org/isbn/{isbn}" });
+    expect(sites.some((s) => s.id === "worldcat")).toBe(false);
+    expect(sites.find((s) => s.id === "kent-libraries")?.name).toBe("Kent Libraries");
+  });
+  it("ignores a bad user file with a warning instead of failing", () => {
+    expect(mergeSites("{ not json").warnings[0]).toMatch(/not valid JSON/);
+    const bad = mergeSites(JSON.stringify([{ id: "x", queryUrl: "javascript:alert(1)" }]));
+    expect(bad.warnings[0]).toMatch(/links file ignored/);
+    expect(bad.sites).toHaveLength(DEFAULT_SITES.length);
+    expect(mergeSites(JSON.stringify([{ id: "empty" }])).warnings[0]).toMatch(/neither isbnUrl nor queryUrl/);
+  });
+});
