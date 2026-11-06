@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { getJson, getText, HttpError } from "../lib/http.js";
 import { cleanIsbn, isValidIsbn10, isValidIsbn13 } from "../lib/isbn.js";
+import { createPacer } from "../lib/pace.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
 
 /**
@@ -207,24 +208,7 @@ export function parseSru(body: string): X[] {
 
 // --- requests ---------------------------------------------------------------------
 
-let chain: Promise<unknown> = Promise.resolve();
-let last = 0;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** Run requests one at a time with a small gap. */
-function paced<T>(fn: () => Promise<T>): Promise<T> {
-  const run = chain.then(async () => {
-    const wait = last + GAP_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    try {
-      return await fn();
-    } finally {
-      last = Date.now();
-    }
-  });
-  chain = run.catch(() => undefined);
-  return run;
-}
+const paced = createPacer(() => GAP_MS);
 
 function explain(err: unknown): never {
   if (err instanceof HttpError) {

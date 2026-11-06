@@ -245,3 +245,51 @@ describe("library of congress mapping", async () => {
     });
   });
 });
+
+describe("crossref mapping", async () => {
+  const { workToBook, buildParams, normaliseDoi } = await import("../src/providers/crossref.js");
+  it("maps a Crossref work to a book", () => {
+    const b = workToBook({
+      DOI: "10.1017/cbo9780511810633",
+      title: ["Markov Chains"],
+      subtitle: ["An introduction"],
+      author: [{ given: "J. R.", family: "Norris" }, { name: "Some Institute" }],
+      publisher: "Cambridge University Press",
+      issued: { "date-parts": [[1997, 2, 28]] },
+      ISBN: ["9780521481816", "0521481813", "not-an-isbn"],
+      abstract: "<jats:p>Markov chains are <jats:italic>central</jats:italic>.</jats:p>",
+      URL: "https://doi.org/10.1017/cbo9780511810633",
+    });
+    expect(b).toMatchObject({
+      source: "crossref",
+      id: "10.1017/cbo9780511810633",
+      title: "Markov Chains",
+      subtitle: "An introduction",
+      authors: ["J. R. Norris", "Some Institute"],
+      publishedDate: "1997-02-28",
+      isbn13: "9780521481816",
+      isbn10: "0521481813",
+      description: "Markov chains are central .",
+      identifiers: { doi: "10.1017/cbo9780511810633" },
+    });
+  });
+  it("falls back to editors and treats deposited year-end dates as just a year", () => {
+    const b = workToBook({ DOI: "10.1515/x", title: ["Reading"], editor: [{ given: "D.", family: "Varisco" }], issued: { "date-parts": [[2011, 12, 31]] } });
+    expect(b.authors).toEqual(["D. Varisco"]);
+    expect(b.publishedDate).toBe("2011");
+    expect(workToBook({ DOI: "10.1/x", issued: { "date-parts": [[2020]] } }).publishedDate).toBe("2020");
+  });
+  it("restricts searches to book types and keeps chapters out of ISBN lookups", () => {
+    const isbn = buildParams({ isbn: "978-0-521-48181-6", limit: 3 });
+    expect(isbn.get("filter")).toBe("isbn:9780521481816,type:book,type:monograph,type:edited-book,type:reference-book");
+    const text = buildParams({ title: "Orientalism", author: "Said", limit: 5 });
+    expect(text.get("query.bibliographic")).toBe("Orientalism");
+    expect(text.get("query.author")).toBe("Said");
+    expect(text.get("rows")).toBe("5");
+  });
+  it("accepts DOIs in several forms", () => {
+    expect(normaliseDoi("https://doi.org/10.1017/CBO9780511810633")).toBe("10.1017/CBO9780511810633");
+    expect(normaliseDoi("doi:10.1515/9780295802626")).toBe("10.1515/9780295802626");
+    expect(normaliseDoi("nonsense")).toBeUndefined();
+  });
+});

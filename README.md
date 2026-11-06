@@ -21,9 +21,10 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 | `loc` | none | Library of Congress. Cataloguer-quality *edition* records (publisher, date, ISBNs, LCCN, subject headings, page count) and name authorities for authors (full dates, variant names, VIAF, ISNI, Wikidata and GND ids). Titles come in cataloguing case ("The dispossessed"). American-leaning, and each edition is its own record, so expect several per title; the best match for an ISBN comes first. Ids are `lccn:<number>` or `isbn:<number>`. |
 | `wikidata` | none | Authority data: author identifiers (VIAF, ISNI, Library of Congress, Open Library, BookBrainz), plus notable works and editions that link to Open Library ids. Strict rate limits, so it is left out of default book searches: ask for it with `source: "wikidata"`. Author searches include it. No ISBN search. Optional `WIKIDATA_CONTACT`. |
 | `hardcover` | required (free) | Community catalogue, good on recent and genre fiction. Needs `HARDCOVER_API_KEY` (Hardcover account → Settings → Hardcover API → New API Key; the `read:catalog` scope is enough). Free tier: 60 requests a minute, 5,000 a day. Searches return works; lookups by id add the default print edition's publisher and ISBNs. Written from the docs and not yet run against the live API. Hardcover's terms bar using the API to train publicly available or commercial LLMs, and bar commercial use of user data; this server only reads catalogue data, for personal use. |
+| `crossref` | none | DOI registry. Academic and university-press books (monographs, edited volumes, reference works) with publisher, date, ISBNs, abstract and DOI; thin on trade books, and fuzzy matching is noisy, so it is left out of default searches (use `source: "crossref"`). Chapters are not returned. Ids are DOIs. Books only; Crossref has no author records. Optional `CROSSREF_CONTACT` (your email) moves requests to its faster polite pool. |
 | `googlebooks` | required | Editions with publisher, ISBNs, descriptions and covers. |
 
-Book searches without a `source` fan out to every available general source (not `wikidata`). Author searches fan out to every source that has author records.
+Book searches without a `source` fan out to every available general source (not `wikidata` or `crossref`). Author searches fan out to every source that has author records.
 
 ## Setup
 
