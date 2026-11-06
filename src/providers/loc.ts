@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { getJson, getText, HttpError } from "../lib/http.js";
 import { cleanIsbn, isValidIsbn10, isValidIsbn13 } from "../lib/isbn.js";
+import { toTwoLetterLanguage } from "../lib/lang.js";
 import { createPacer } from "../lib/pace.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
 
@@ -71,12 +72,6 @@ export function splitHeading(label: string): { name: string; birth?: string; dea
 }
 
 // --- books (MODS) ----------------------------------------------------------------
-
-const LANGUAGES: Record<string, string> = {
-  eng: "en", fre: "fr", ger: "de", spa: "es", ita: "it", por: "pt", dut: "nl", rus: "ru",
-  lat: "la", grc: "el", gre: "el", jpn: "ja", chi: "zh", ara: "ar", heb: "he", swe: "sv",
-  dan: "da", nor: "no", pol: "pl", wel: "cy", gle: "ga",
-};
 
 const AUTHOR_ROLES = new Set(["author", "creator", "aut", "cre"]);
 
@@ -187,7 +182,7 @@ export function modsToBook(mods: X): Book | undefined {
     description: text(mods.abstract),
     subjects: subjects.length ? subjects : undefined,
     pageCount: pages ? Number(pages) : undefined,
-    language: langCode ? LANGUAGES[text(langCode) ?? ""] : undefined,
+    language: toTwoLetterLanguage(text(langCode)),
     identifiers: lccn ? { lccn } : undefined,
     sourceUrl: lccn ? `${LCCN_URL}/${lccn}` : undefined,
   };

@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All six sources are verified against live data. 36 unit tests pass.
+All seven sources are verified against live data. 40 unit tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -22,7 +22,7 @@ It is registered and tested in Claude Code and Claude Desktop.
 |---|---|
 | Tools: `list_sources`, `search_books`, `get_book`, `format_citation`, `search_authors`, `get_author` | `src/tools.ts` |
 | Provider interface and source-agnostic `Book` / `Author` models | `src/types.ts` |
-| One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
+| One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `bookbrainz`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
 | Shared HTTP, ISBN and citation helpers | `src/lib/` |
 | Citation styles: APA, MLA, Chicago, BibTeX | `src/lib/citation.ts` |
 | Tests | `tests/unit.test.ts` |
@@ -34,6 +34,7 @@ It is registered and tested in Claude Code and Claude Desktop.
 | `openlibrary` | none | Strong on editions and ISBNs |
 | `hardcover` | `HARDCOVER_API_KEY` | Good on recent and genre fiction. GraphQL |
 | `loc` | none | Library of Congress: SRU catalogue (MODS XML) plus id.loc.gov name authorities. Edition-accurate. Added 2026-11-06 |
+| `bookbrainz` | none | MetaBrainz CC0 database; author identifiers; editions by name search only. Opt-in for book searches. Added 2026-11-06 |
 | `crossref` | none | DOI registry; academic books; books only, opt-in for searches. Added 2026-11-06 |
 | `wikidata` | none | Authority identifiers (VIAF, ISNI, LC). Opt-in for book searches |
 | `googlebooks` | `GOOGLE_BOOKS_API_KEY` | Key is required; keyless quota is zero |
@@ -56,7 +57,6 @@ Suggested order. Kim approves each step before it starts.
 3. Tune the results: Hardcover returns junk such as study guides, and the
    fan-out merge is a plain concatenation with no de-duplication across sources.
 4. Further sources, roughly easiest first:
-   - BookBrainz (open API; check its state first).
    - Local libraries.
    - WorldCat and ISBNdb need paid or institutional keys.
    - Biblio, Bookshop.org UK and World of Books have no public API found.
@@ -88,6 +88,12 @@ Suggested order. Kim approves each step before it starts.
   Chicago print it when present; when missing, `format_citation` adds a note
   telling the agent to ask before looking further. Google Books and Hardcover
   do not give it.
+- **BookBrainz.** Spec: `https://api.bookbrainz.org/1/docs/json`. Search is
+  name-only and its hits have no authors or publishers, so the top five are
+  hydrated one at a time (paced 700 ms), which makes a search take about
+  6 s. `type=edition` and `type=author` work in lower case. Dates look like
+  `+001929-10-21` (see `bbDate`). Edition detail uses `authorCredits`
+  (the spec says `authorCredit`).
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out
   (`bookSearchByDefault: false`). Test it one call at a time.

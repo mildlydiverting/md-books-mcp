@@ -316,3 +316,41 @@ describe("crossref mapping", async () => {
     expect(normaliseDoi("nonsense")).toBeUndefined();
   });
 });
+
+describe("bookbrainz mapping", async () => {
+  const { bbDate, editionToBook, authorToAuthor, searchText } = await import("../src/providers/bookbrainz.js");
+  it("reads BookBrainz dates", () => {
+    expect(bbDate("+001929-10-21")).toBe("1929-10-21");
+    expect(bbDate("+002014")).toBe("2014");
+    expect(bbDate("+001929-10")).toBe("1929-10");
+    expect(bbDate(null)).toBeUndefined();
+    expect(bbDate("nonsense")).toBeUndefined();
+  });
+  it("maps an edition, with ISBNs from its identifiers", () => {
+    const b = editionToBook(
+      {
+        bbid: "df2c8eea-8d82-4410-8c92-ad0c185c4a92",
+        defaultAlias: { name: "The Dispossessed" },
+        authorCredits: { names: [{ name: "Ursula K. Le Guin" }] },
+        publishers: [{ name: "Gollancz" }],
+        releaseEventDate: "+002002",
+        pages: 387,
+        languages: ["eng"],
+      },
+      { identifiers: [{ type: "Barcode", value: "9781857988826" }, { type: "ISBN-13", value: "978-1-85798-882-6" }] },
+    );
+    expect(b).toMatchObject({ source: "bookbrainz", title: "The Dispossessed", authors: ["Ursula K. Le Guin"], publisher: "Gollancz", publishedDate: "2002", isbn13: "9781857988826", pageCount: 387, language: "en" });
+    expect(editionToBook({ bbid: "x", defaultAlias: { name: "T" } }).isbn13).toBeUndefined();
+  });
+  it("maps an author with cross-system identifiers", () => {
+    const a = authorToAuthor(
+      { bbid: "e66704df", defaultAlias: { name: "Ursula K. Le Guin" }, beginDate: "+001929-10-21", endDate: "+002018-01-22" },
+      { identifiers: [{ type: "Wikidata ID", value: "Q181659" }, { type: "ISNI", value: "0000 0001 2145 7729" }, { type: "VIAF", value: "101734435" }, { type: "Unknown", value: "x" }] },
+    );
+    expect(a).toMatchObject({ name: "Ursula K. Le Guin", birthDate: "1929-10-21", deathDate: "2018-01-22" });
+    expect(a.identifiers).toEqual({ bookbrainz: "e66704df", wikidata: "Q181659", isni: "0000000121457729", viaf: "101734435" });
+  });
+  it("joins name search text", () => {
+    expect(searchText({ title: "Emma", author: "Austen", limit: 3 })).toBe("Emma Austen");
+  });
+});
