@@ -8,6 +8,8 @@ export interface Book {
   subtitle?: string;
   authors: string[];
   publisher?: string;
+  /** Place of publication ("London"), only when the source already gives it. Never fetched separately. */
+  place?: string;
   /** As the source gives it: "2003", "2003-05" or "2003-05-14". */
   publishedDate?: string;
   isbn10?: string;

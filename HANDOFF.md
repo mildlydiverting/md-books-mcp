@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All six sources are verified against live data. 34 unit tests pass.
+All six sources are verified against live data. 36 unit tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -81,6 +81,13 @@ Suggested order. Kim approves each step before it starts.
   as year-only, because publishers deposit that when they only know the year.
   `select=` only accepts fields valid for the route (`edition-number`,
   `language` are not).
+- **Place of publication** (`Book.place`) is filled only from data a source
+  already returns: Open Library editions (`publish_places`), Library of
+  Congress (`placeTerm`), Crossref (`publisher-location`). Kim's rule: never
+  spend extra API calls to find it without asking her first. Harvard and
+  Chicago print it when present; when missing, `format_citation` adds a note
+  telling the agent to ask before looking further. Google Books and Hardcover
+  do not give it.
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out
   (`bookSearchByDefault: false`). Test it one call at a time.

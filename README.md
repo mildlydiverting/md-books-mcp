@@ -11,7 +11,7 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 - **`get_book`** `{ source, id }` or `{ isbn }`: full record.
 - **`search_authors`** `{ name, source?, limit? }`: life dates, best-known work, work count. Only sources with real author records (currently Open Library) take part.
 - **`get_author`** `{ source, id }`: bio, name variants and identifiers in other systems (Wikidata, VIAF, ISNI, Library of Congress, BookBrainz), which is how records from different sources will be joined.
-- **`format_citation`** `{ style, source, id }` or `{ style, isbn }`: APA 7, MLA 9, Chicago, Harvard (Cite Them Right, without place of publication) or BibTeX. Author names are split by a simple rule (last word, plus particles like "Le" or "van"), so check unusual names by eye.
+- **`format_citation`** `{ style, source, id }` or `{ style, isbn }`: APA 7, MLA 9, Chicago, Harvard (Cite Them Right) or BibTeX. Harvard and Chicago print the place of publication when the record already has it (Open Library editions, Library of Congress, Crossref); the server never makes an extra request to find it, and tells the agent to ask you first if it is missing. Author names are split by a simple rule (last word, plus particles like "Le" or "van"), so check unusual names by eye.
 
 ## Sources
 

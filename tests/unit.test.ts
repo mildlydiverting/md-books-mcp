@@ -60,6 +60,17 @@ describe("citations", () => {
     expect(formatCitation(many, "harvard")).toContain("Smith, A. et al. (2003)");
     expect(formatCitation({ ...book, authors: [], publishedDate: undefined }, "harvard")).toBe("(no date) *The Dispossessed: An Ambiguous Utopia*. Harper.");
   });
+  it("uses the place of publication when the record has it", () => {
+    const placed = { ...book, place: "London" };
+    expect(formatCitation(placed, "harvard")).toBe("Le Guin, U.K. (2003) *The Dispossessed: An Ambiguous Utopia*. London: Harper.");
+    expect(formatCitation(placed, "chicago")).toBe("Le Guin, Ursula K. *The Dispossessed: An Ambiguous Utopia*. London: Harper, 2003.");
+    expect(formatCitation(placed, "bibtex")).toContain("address = {London}");
+    // APA and MLA do not print a place.
+    expect(formatCitation(placed, "apa")).not.toContain("London");
+    expect(formatCitation(placed, "mla")).not.toContain("London");
+    // A place without a publisher has nothing to attach to.
+    expect(formatCitation({ ...placed, publisher: undefined }, "harvard")).not.toContain("London");
+  });
   it("BibTeX", () => {
     expect(formatCitation(book, "bibtex")).toContain("@book{leguin2003,");
   });
@@ -86,10 +97,11 @@ describe("open library mapping", async () => {
       title: "Pride and Prejudice",
       authors: [{ name: "Jane Austen" }],
       publishers: [{ name: "Penguin Books" }],
+      publish_places: [{ name: "London" }],
       publish_date: "2003",
       identifiers: { isbn_13: ["9780141439518"] },
     });
-    expect(b).toMatchObject({ id: "isbn:9780141439518", publisher: "Penguin Books", publishedDate: "2003", isbn13: "9780141439518" });
+    expect(b).toMatchObject({ id: "isbn:9780141439518", publisher: "Penguin Books", place: "London", publishedDate: "2003", isbn13: "9780141439518" });
   });
   it("builds field queries", () => {
     expect(buildQ({ title: "Emma", author: "Austen", limit: 5 })).toBe('title:"Emma" author:"Austen"');
@@ -178,7 +190,7 @@ describe("library of congress mapping", async () => {
     <titleInfo><nonSort xml:space="preserve">The  </nonSort><title>dispossessed</title><subTitle>an ambiguous Utopia</subTitle></titleInfo>
     <name type="personal" usage="primary"><namePart>Le Guin, Ursula K.,</namePart><namePart type="date">1929-2018</namePart></name>
     <name type="corporate"><namePart>Paul Avrich Collection (Library of Congress)</namePart></name>
-    <originInfo><dateIssued encoding="marc">1974</dateIssued><agent><namePart>Harper &amp; Row</namePart></agent><dateIssued>[1974]</dateIssued></originInfo>
+    <originInfo><place><placeTerm type="code" authority="marccountry">nyu</placeTerm></place><dateIssued encoding="marc">1974</dateIssued><place><placeTerm type="text">New York</placeTerm></place><agent><namePart>Harper &amp; Row</namePart></agent><dateIssued>[1974]</dateIssued></originInfo>
     <language><languageTerm authority="iso639-2b" type="code">eng</languageTerm></language>
     <physicalDescription><extent>341 p. 22 cm.</extent></physicalDescription>
     <subject authority="lcsh"><topic>Utopias</topic></subject><subject authority="lcsh"><topic>Utopias</topic></subject>
@@ -206,6 +218,7 @@ describe("library of congress mapping", async () => {
       subtitle: "an ambiguous Utopia",
       authors: ["Ursula K. Le Guin"],
       publisher: "Harper & Row",
+      place: "New York",
       publishedDate: "1974",
       isbn10: "0060125632",
       isbn13: "9780060125639",
@@ -263,6 +276,7 @@ describe("crossref mapping", async () => {
       subtitle: ["An introduction"],
       author: [{ given: "J. R.", family: "Norris" }, { name: "Some Institute" }],
       publisher: "Cambridge University Press",
+      "publisher-location": "Cambridge",
       issued: { "date-parts": [[1997, 2, 28]] },
       ISBN: ["9780521481816", "0521481813", "not-an-isbn"],
       abstract: "<jats:p>Markov chains are <jats:italic>central</jats:italic>.</jats:p>",
@@ -273,6 +287,7 @@ describe("crossref mapping", async () => {
       id: "10.1017/cbo9780511810633",
       title: "Markov Chains",
       subtitle: "An introduction",
+      place: "Cambridge",
       authors: ["J. R. Norris", "Some Institute"],
       publishedDate: "1997-02-28",
       isbn13: "9780521481816",

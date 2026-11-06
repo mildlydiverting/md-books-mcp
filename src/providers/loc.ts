@@ -118,6 +118,17 @@ function publisherOf(mods: X): string | undefined {
   return undefined;
 }
 
+function placeOf(mods: X): string | undefined {
+  for (const info of objs(mods.originInfo)) {
+    for (const place of objs(info.place)) {
+      const term = arr(place.placeTerm).find((t) => attr(t, "type") === "text");
+      const raw = text(term);
+      if (raw) return raw.replace(/^\[|\]$/g, "").replace(/[\s,;:]+$/, "");
+    }
+  }
+  return undefined;
+}
+
 function dateOf(mods: X): string | undefined {
   const dates: { value: string; marc: boolean }[] = [];
   for (const info of objs(mods.originInfo)) {
@@ -169,6 +180,7 @@ export function modsToBook(mods: X): Book | undefined {
     subtitle,
     authors: authorsOf(mods),
     publisher: publisherOf(mods),
+    place: placeOf(mods),
     publishedDate: dateOf(mods),
     isbn10,
     isbn13,

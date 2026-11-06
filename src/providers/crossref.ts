@@ -14,7 +14,7 @@ const BASE = "https://api.crossref.org";
 const CONTACT_ENV = "CROSSREF_CONTACT";
 const BOOK_TYPES = ["book", "monograph", "edited-book", "reference-book"];
 const TYPE_FILTER = BOOK_TYPES.map((t) => `type:${t}`).join(",");
-const SELECT = "DOI,title,subtitle,author,editor,publisher,issued,ISBN,type,abstract,subject,URL";
+const SELECT = "DOI,title,subtitle,author,editor,publisher,publisher-location,issued,ISBN,type,abstract,subject,URL";
 
 const contact = (): string | undefined => process.env[CONTACT_ENV]?.trim() || undefined;
 // Public pool: about 1 request a second. Polite pool: considerably more.
@@ -33,6 +33,7 @@ export interface CrWork {
   author?: CrPerson[];
   editor?: CrPerson[];
   publisher?: string;
+  "publisher-location"?: string;
   issued?: { "date-parts"?: (number | null)[][] };
   ISBN?: string[];
   abstract?: string;
@@ -73,6 +74,7 @@ export function workToBook(w: CrWork): Book {
     subtitle: w.subtitle?.[0],
     authors: people.map(personName).filter((n): n is string => !!n),
     publisher: w.publisher,
+    place: w["publisher-location"],
     publishedDate: dateOf(w),
     isbn10: isbns.find(isValidIsbn10),
     isbn13: isbns.find(isValidIsbn13),

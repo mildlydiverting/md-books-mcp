@@ -38,6 +38,7 @@ interface OlEdition {
   authors?: { name: string }[];
   number_of_pages?: number;
   publishers?: { name: string }[];
+  publish_places?: { name: string }[];
   publish_date?: string;
   subjects?: { name: string }[];
   identifiers?: { isbn_10?: string[]; isbn_13?: string[] };
@@ -101,6 +102,7 @@ export function editionToBook(isbn: string, e: OlEdition): Book {
     subtitle: e.subtitle,
     authors: (e.authors ?? []).map((a) => a.name),
     publisher: e.publishers?.[0]?.name,
+    place: e.publish_places?.[0]?.name,
     publishedDate: e.publish_date,
     isbn10: e.identifiers?.isbn_10?.[0],
     isbn13: e.identifiers?.isbn_13?.[0],

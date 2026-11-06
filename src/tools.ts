@@ -1,6 +1,6 @@
 import * as z from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/server";
-import { CITATION_STYLES, formatCitation } from "./lib/citation.js";
+import { CITATION_STYLES, STYLES_WITH_PLACE, formatCitation } from "./lib/citation.js";
 import { cleanIsbn, isValidIsbn } from "./lib/isbn.js";
 import { availableProviders, getProvider, providers } from "./providers/index.js";
 import type { Author, Book, BookProvider } from "./types.js";
@@ -36,7 +36,7 @@ function detail(b: Book): string {
   const lines = [
     `# ${b.title}${b.subtitle ? `: ${b.subtitle}` : ""}`,
     b.authors.length ? `**Authors:** ${b.authors.join(", ")}` : "",
-    b.publisher || b.publishedDate ? `**Published:** ${[b.publisher, b.publishedDate].filter(Boolean).join(", ")}` : "",
+    b.publisher || b.publishedDate ? `**Published:** ${[b.publisher ? (b.place ? `${b.place}: ${b.publisher}` : b.publisher) : undefined, b.publishedDate].filter(Boolean).join(", ")}` : "",
     b.isbn13 || b.isbn10 ? `**ISBN:** ${[b.isbn13, b.isbn10].filter(Boolean).join(" / ")}` : "",
     b.pageCount ? `**Pages:** ${b.pageCount}` : "",
     b.language ? `**Language:** ${b.language}` : "",
@@ -204,7 +204,7 @@ export function registerTools(server: McpServer): void {
     "format_citation",
     {
       description:
-        "Format a citation for a book in APA 7, MLA 9, Chicago (bibliography entry) or BibTeX. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
+        "Format a citation for a book in APA 7, MLA 9, Chicago (bibliography entry), Harvard (Cite Them Right) or BibTeX. Harvard and Chicago include the place of publication when the record has it. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
       inputSchema: z.object({
         style: z.enum(CITATION_STYLES).describe("Citation style"),
         source: z.string().optional().describe("Source id, from search_books"),
@@ -217,7 +217,12 @@ export function registerTools(server: McpServer): void {
       guard(async () => {
         const book = await resolveBook(ref);
         if (typeof book === "string") return fail(book);
-        return text(formatCitation(book, style), { style, book });
+        const citation = formatCitation(book, style);
+        const missingPlace = STYLES_WITH_PLACE.includes(style) && book.publisher && !book.place;
+        const note = missingPlace
+          ? "\n\nNote: this record has no place of publication, so the citation omits it. Finding it needs an extra lookup; ask the user before making one."
+          : "";
+        return text(citation + note, { style, book });
       }),
   );
 

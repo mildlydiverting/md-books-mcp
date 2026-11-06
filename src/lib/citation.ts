@@ -52,10 +52,14 @@ function apa(book: Book): string {
   ].join("");
 }
 
+/** "London: Harper" when the place is known, else "Harper". */
+const withPlace = (book: Book): string | undefined =>
+  book.publisher ? (book.place ? `${book.place}: ${book.publisher}` : book.publisher) : undefined;
+
 /**
- * Harvard, in the Cite Them Right (UK) form: "Le Guin, U.K. (1974) *Title*. Publisher."
- * Four or more authors become "first et al.". Place of publication, which Cite Them Right
- * puts before the publisher, is not in the data, so it is left out; add it by hand.
+ * Harvard, in the Cite Them Right (UK) form: "Le Guin, U.K. (1974) *Title*. London: Harper."
+ * Four or more authors become "first et al.". The place is used only when the record already
+ * has it; otherwise it is left out.
  */
 function harvard(book: Book): string {
   const names = book.authors.map((a) => {
@@ -67,7 +71,7 @@ function harvard(book: Book): string {
     who ? `${who} ` : "",
     `(${year(book) ?? "no date"}) `,
     `*${fullTitle(book)}*.`,
-    book.publisher ? ` ${book.publisher}.` : "",
+    book.publisher ? ` ${withPlace(book)}.` : "",
   ].join("");
 }
 
@@ -91,7 +95,7 @@ function chicago(book: Book): string {
     ...others.map((o) => `${o.given} ${o.family}`.trim()),
   ].filter(Boolean);
   const who = list(names, "and");
-  const pub = [book.publisher, year(book)].filter(Boolean).join(", ");
+  const pub = [withPlace(book), year(book)].filter(Boolean).join(", ");
   return `${who ? `${who.replace(/\.$/, "")}. ` : ""}*${fullTitle(book)}*.${pub ? ` ${pub}.` : ""}`;
 }
 
@@ -102,6 +106,7 @@ function bibtex(book: Book): string {
     ["author", book.authors.length ? book.authors.join(" and ") : undefined],
     ["title", fullTitle(book)],
     ["publisher", book.publisher],
+    ["address", book.place],
     ["year", year(book)],
     ["isbn", book.isbn13 ?? book.isbn10],
   ];
@@ -111,6 +116,9 @@ function bibtex(book: Book): string {
     .join(",\n");
   return `@book{${key},\n${body}\n}`;
 }
+
+/** Styles that print the place of publication when it is known. */
+export const STYLES_WITH_PLACE: readonly CitationStyle[] = ["harvard", "chicago"];
 
 /**
  * Format a citation. Author names are split naively (last word = family name),
