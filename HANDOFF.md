@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All four sources are verified against live data. 22 unit tests pass.
+All five sources are verified against live data. 30 unit tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -22,7 +22,7 @@ It is registered and tested in Claude Code and Claude Desktop.
 |---|---|
 | Tools: `list_sources`, `search_books`, `get_book`, `format_citation`, `search_authors`, `get_author` | `src/tools.ts` |
 | Provider interface and source-agnostic `Book` / `Author` models | `src/types.ts` |
-| One file per source | `src/providers/` (`openlibrary`, `hardcover`, `wikidata`, `googlebooks`), registered in `src/providers/index.ts` |
+| One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `googlebooks`), registered in `src/providers/index.ts` |
 | Shared HTTP, ISBN and citation helpers | `src/lib/` |
 | Citation styles: APA, MLA, Chicago, BibTeX | `src/lib/citation.ts` |
 | Tests | `tests/unit.test.ts` |
@@ -33,6 +33,7 @@ It is registered and tested in Claude Code and Claude Desktop.
 |---|---|---|
 | `openlibrary` | none | Strong on editions and ISBNs |
 | `hardcover` | `HARDCOVER_API_KEY` | Good on recent and genre fiction. GraphQL |
+| `loc` | none | Library of Congress: SRU catalogue (MODS XML) plus id.loc.gov name authorities. Edition-accurate. Added 2026-11-06 |
 | `wikidata` | none | Authority identifiers (VIAF, ISNI, LC). Opt-in for book searches |
 | `googlebooks` | `GOOGLE_BOOKS_API_KEY` | Key is required; keyless quota is zero |
 
@@ -54,6 +55,7 @@ Suggested order. Kim approves each step before it starts.
 3. Tune the results: Hardcover returns junk such as study guides, and the
    fan-out merge is a plain concatenation with no de-duplication across sources.
 4. Further sources, roughly easiest first:
+   - Crossref (keyless; academic books and chapters with DOIs).
    - BookBrainz (open API; check its state first).
    - Local libraries.
    - WorldCat and ISBNdb need paid or institutional keys.
@@ -67,6 +69,12 @@ Suggested order. Kim approves each step before it starts.
   (no publisher, no ISBN). ISBN lookups and Hardcover by-id lookups give
   edition-accurate data. For citations, pass an ISBN. The server must never
   invent a publisher or ISBN.
+- **Library of Congress.** Use the SRU catalogue (`lx2.loc.gov/sru/lcdb`) and
+  `id.loc.gov` only. The `loc.gov` JSON site is behind a Cloudflare bot check;
+  do not try to get round it. Requests are paced one at a time (400 ms gap).
+  LC records can cite other editions' ISBNs, so ISBN lookups put the record that
+  carries that exact ISBN first. XML is parsed with `fast-xml-parser` (pinned
+  5.11.2); keep `parseTagValue: false` or ISBNs lose leading zeros.
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out
   (`bookSearchByDefault: false`). Test it one call at a time.

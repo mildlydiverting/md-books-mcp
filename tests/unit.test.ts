@@ -161,3 +161,87 @@ describe("hardcover mapping", async () => {
     expect(buildSearchText({ title: "Emma", author: "Austen", limit: 5 })).toBe("Emma Austen");
   });
 });
+
+describe("library of congress mapping", async () => {
+  const { forwardName, splitHeading, modsToBook, parseSru, buildCql, hitToAuthor, graphToAuthor } = await import("../src/providers/loc.js");
+
+  const sru = (inner: string) => `<?xml version="1.0"?><zs:searchRetrieveResponse xmlns:zs="http://www.loc.gov/zing/srw/"><zs:version>1.1</zs:version><zs:records><zs:record><zs:recordData>${inner}</zs:recordData></zs:record></zs:records></zs:searchRetrieveResponse>`;
+  const mods = `<mods xmlns="http://www.loc.gov/mods/v3">
+    <titleInfo><nonSort xml:space="preserve">The  </nonSort><title>dispossessed</title><subTitle>an ambiguous Utopia</subTitle></titleInfo>
+    <name type="personal" usage="primary"><namePart>Le Guin, Ursula K.,</namePart><namePart type="date">1929-2018</namePart></name>
+    <name type="corporate"><namePart>Paul Avrich Collection (Library of Congress)</namePart></name>
+    <originInfo><dateIssued encoding="marc">1974</dateIssued><agent><namePart>Harper &amp; Row</namePart></agent><dateIssued>[1974]</dateIssued></originInfo>
+    <language><languageTerm authority="iso639-2b" type="code">eng</languageTerm></language>
+    <physicalDescription><extent>341 p. 22 cm.</extent></physicalDescription>
+    <subject authority="lcsh"><topic>Utopias</topic></subject><subject authority="lcsh"><topic>Utopias</topic></subject>
+    <identifier type="isbn">0060125632</identifier><identifier type="isbn">9780060125639</identifier>
+    <identifier type="lccn">  73018667 </identifier>
+  </mods>`;
+
+  it("turns catalogue names into natural order", () => {
+    expect(forwardName("Le Guin, Ursula K.,")).toBe("Ursula K. Le Guin");
+    expect(forwardName("King, Martin Luther, Jr.")).toBe("Martin Luther King, Jr.");
+    expect(forwardName("Homer")).toBe("Homer");
+  });
+  it("splits authority headings into name and dates", () => {
+    expect(splitHeading("Le Guin, Ursula K., 1929-2018")).toEqual({ name: "Ursula K. Le Guin", birth: "1929", death: "2018" });
+    expect(splitHeading("Pratchett, Terry")).toEqual({ name: "Terry Pratchett" });
+    expect(splitHeading("Mitchell, David, 1969-")).toMatchObject({ birth: "1969", death: undefined });
+  });
+  it("maps a MODS record to an edition-accurate book", () => {
+    const [record] = parseSru(sru(mods));
+    const b = modsToBook(record!)!;
+    expect(b).toMatchObject({
+      source: "loc",
+      id: "lccn:73018667",
+      title: "The dispossessed",
+      subtitle: "an ambiguous Utopia",
+      authors: ["Ursula K. Le Guin"],
+      publisher: "Harper & Row",
+      publishedDate: "1974",
+      isbn10: "0060125632",
+      isbn13: "9780060125639",
+      pageCount: 341,
+      language: "en",
+      subjects: ["Utopias"],
+      sourceUrl: "https://lccn.loc.gov/73018667",
+    });
+  });
+  it("skips records with no usable id", () => {
+    const [record] = parseSru(sru(`<mods xmlns="http://www.loc.gov/mods/v3"><titleInfo><title>Orphan</title></titleInfo></mods>`));
+    expect(modsToBook(record!)).toBeUndefined();
+  });
+  it("reports catalogue diagnostics as errors", () => {
+    const body = `<zs:searchRetrieveResponse xmlns:zs="http://www.loc.gov/zing/srw/"><zs:diagnostics xmlns:diag="d"><diag:diagnostic><diag:message>Unsupported index</diag:message><diag:details>anywhere</diag:details></diag:diagnostic></zs:diagnostics></zs:searchRetrieveResponse>`;
+    expect(() => parseSru(body)).toThrow(/Unsupported index/);
+  });
+  it("builds CQL", () => {
+    expect(buildCql({ title: 'Emma "x"', author: "Austen", limit: 3 })).toBe('bath.title="Emma  x" and bath.author="Austen"');
+    expect(buildCql({ isbn: "978-0-06-012563-9", limit: 3 })).toBe("bath.isbn=9780060125639");
+    expect(buildCql({ text: "dune", limit: 3 })).toBe('cql.anywhere="dune"');
+  });
+  it("keeps people and drops work headings from author search", () => {
+    const person = hitToAuthor({ token: "n78095474", aLabel: "Le Guin, Ursula K., 1929-2018", more: { rdftypes: ["PersonalName", "Authority"], variantLabels: ["Le Guin, Ursula, 1929-2018", "Ле Гуин, Урсула, 1929-2018"], activityfields: ["Science fiction", "Science fiction"] } });
+    expect(person).toMatchObject({ id: "n78095474", name: "Ursula K. Le Guin", birthDate: "1929", deathDate: "2018", alternateNames: ["Ursula Le Guin"], topSubjects: ["Science fiction"] });
+    expect(hitToAuthor({ token: "no2016091558", aLabel: "Le Guin, Ursula K. Rocannon's world", more: { rdftypes: ["NameTitle", "PersonalName"] } })).toBeUndefined();
+  });
+  it("maps an authority graph with identifiers and full dates", () => {
+    const M = "http://www.loc.gov/mads/rdf/v1#";
+    const a = graphToAuthor("n78095474", [
+      {
+        "@id": "http://id.loc.gov/authorities/names/n78095474",
+        [`${M}authoritativeLabel`]: [{ "@value": "Le Guin, Ursula K., 1929-2018" }],
+        [`${M}identifiesRWO`]: [{ "@id": "http://www.wikidata.org/entity/Q181659" }, { "@id": "http://viaf.org/viaf/101734435" }, { "@id": "https://isni.org/isni/0000000121457729" }],
+        "http://www.w3.org/2004/02/skos/core#altLabel": [{ "@language": "und-latn", "@value": "Kroeber, Ursula, 1929-2018" }],
+      },
+      { "@id": "http://id.loc.gov/rwo/agents/n78095474", [`${M}birthDate`]: [{ "@value": "1929-10-21" }], [`${M}deathDate`]: [{ "@value": "2018-01-22" }] },
+    ]);
+    expect(a).toMatchObject({
+      name: "Ursula K. Le Guin",
+      birthDate: "1929-10-21",
+      deathDate: "2018-01-22",
+      alternateNames: ["Ursula Kroeber"],
+      identifiers: { lc_naf: "n78095474", wikidata: "Q181659", viaf: "101734435", isni: "0000000121457729" },
+    });
+  });
+});
