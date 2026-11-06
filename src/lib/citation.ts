@@ -1,6 +1,6 @@
 import type { Book } from "../types.js";
 
-export const CITATION_STYLES = ["apa", "mla", "chicago", "bibtex"] as const;
+export const CITATION_STYLES = ["apa", "mla", "chicago", "harvard", "bibtex"] as const;
 export type CitationStyle = (typeof CITATION_STYLES)[number];
 
 function year(book: Book): string | undefined {
@@ -47,6 +47,25 @@ function apa(book: Book): string {
   return [
     who ? `${who} ` : "",
     `(${year(book) ?? "n.d."}). `,
+    `*${fullTitle(book)}*.`,
+    book.publisher ? ` ${book.publisher}.` : "",
+  ].join("");
+}
+
+/**
+ * Harvard, in the Cite Them Right (UK) form: "Le Guin, U.K. (1974) *Title*. Publisher."
+ * Four or more authors become "first et al.". Place of publication, which Cite Them Right
+ * puts before the publisher, is not in the data, so it is left out; add it by hand.
+ */
+function harvard(book: Book): string {
+  const names = book.authors.map((a) => {
+    const { family, given } = splitName(a);
+    return given ? `${family}, ${initials(given).replace(/ /g, "")}` : family;
+  });
+  const who = names.length >= 4 ? `${names[0]} et al.` : list(names, "and");
+  return [
+    who ? `${who} ` : "",
+    `(${year(book) ?? "no date"}) `,
     `*${fullTitle(book)}*.`,
     book.publisher ? ` ${book.publisher}.` : "",
   ].join("");
@@ -105,6 +124,8 @@ export function formatCitation(book: Book, style: CitationStyle): string {
       return mla(book);
     case "chicago":
       return chicago(book);
+    case "harvard":
+      return harvard(book);
     case "bibtex":
       return bibtex(book);
   }

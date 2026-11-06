@@ -52,6 +52,14 @@ describe("citations", () => {
   it("MLA", () => {
     expect(formatCitation(book, "mla")).toBe("Le Guin, Ursula K. *The Dispossessed: An Ambiguous Utopia*. Harper, 2003.");
   });
+  it("Harvard", () => {
+    expect(formatCitation(book, "harvard")).toBe("Le Guin, U.K. (2003) *The Dispossessed: An Ambiguous Utopia*. Harper.");
+    const two = { ...book, authors: ["Ann Smith", "Bo Jones"] };
+    expect(formatCitation(two, "harvard")).toContain("Smith, A. and Jones, B. (2003)");
+    const many = { ...book, authors: ["Ann Smith", "Bo Jones", "Cy Lee", "Di Wu"] };
+    expect(formatCitation(many, "harvard")).toContain("Smith, A. et al. (2003)");
+    expect(formatCitation({ ...book, authors: [], publishedDate: undefined }, "harvard")).toBe("(no date) *The Dispossessed: An Ambiguous Utopia*. Harper.");
+  });
   it("BibTeX", () => {
     expect(formatCitation(book, "bibtex")).toContain("@book{leguin2003,");
   });
