@@ -98,9 +98,9 @@ Suggested order. Kim approves each step before it starts.
 - **Search links** (`find_elsewhere`, `src/lib/links.ts`) are the answer for sites
   with no API or a bot check (Biblio, Bookshop.org UK, World of Books,
   WorldCat). Templates only; nothing is fetched. Kim can add sites in
-  `~/.config/md-books-mcp/links.json` (example in `links.example.json`). Bookshop,
-  WorldCat, Hardcover and Oxfam URL patterns are unverified because they block scripts:
-  ask Kim to click each once. Biblio's pattern came from Kim. Oxfam's (`/searchresults?Ntt=`) was inferred from the shop's own JavaScript (an Oracle Commerce/Endeca store); Kim's category URL was not a search address. Her local library
+  `~/.config/md-books-mcp/links.json` (example in `links.example.json`). WorldCat,
+  Hardcover and Oxfam URL patterns are unverified because they block scripts:
+  ask Kim to click each once. Biblio's and Bookshop.org's (`/beta-search?bkshp-astro=t&keywords=`, a beta search that may change) came from Kim. Oxfam's (`/searchresults?Ntt=`) was inferred from the shop's own JavaScript (an Oracle Commerce/Endeca store); Kim's category URL was not a search address. Her local library
   catalogue is not added yet; it needs its search URL.
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out

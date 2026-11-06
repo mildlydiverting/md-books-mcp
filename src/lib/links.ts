@@ -39,7 +39,7 @@ export interface SiteLink {
 /** Built-in sites. Patterns marked unverified were blocked to scripts by a bot check, so confirm them in a browser. */
 export const DEFAULT_SITES: LinkSite[] = [
   { id: "biblio", name: "Biblio (UK)", note: "New, used and rare books from independent sellers", isbnUrl: "https://biblio.co.uk/booksearch/keyisbn/{isbn}" },
-  { id: "bookshop-uk", name: "Bookshop.org (UK)", note: "New books; supports independent shops (unverified pattern)", isbnUrl: "https://uk.bookshop.org/search?keywords={isbn}", queryUrl: "https://uk.bookshop.org/search?keywords={query}" },
+  { id: "bookshop-uk", name: "Bookshop.org (UK)", note: "New books; supports independent shops", isbnUrl: "https://uk.bookshop.org/beta-search?bkshp-astro=t&keywords={isbn}", queryUrl: "https://uk.bookshop.org/beta-search?bkshp-astro=t&keywords={query}" },
   { id: "worldofbooks", name: "World of Books", note: "Cheap used books (UK)", isbnUrl: "https://www.worldofbooks.com/en-gb/search?query={isbn}", queryUrl: "https://www.worldofbooks.com/en-gb/search?query={query}" },
   { id: "oxfam", name: "Oxfam Online Shop", note: "Second-hand books; proceeds go to Oxfam (unverified pattern)", isbnUrl: "https://onlineshop.oxfam.org.uk/searchresults?Ntt={isbn}", queryUrl: "https://onlineshop.oxfam.org.uk/searchresults?Ntt={query}" },
   { id: "worldcat", name: "WorldCat", note: "Which libraries hold it (unverified pattern)", isbnUrl: "https://search.worldcat.org/search?q=bn%3A{isbn}", queryUrl: "https://search.worldcat.org/search?q={query}" },

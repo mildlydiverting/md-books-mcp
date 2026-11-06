@@ -367,6 +367,7 @@ describe("search links", async () => {
     const byId = Object.fromEntries(links.map((l) => [l.id, l.url]));
     expect(byId.biblio).toBe("https://biblio.co.uk/booksearch/keyisbn/9780060125639");
     expect(byId.hardcover).toBe("https://hardcover.app/search?q=9780060125639");
+    expect(byId["bookshop-uk"]).toBe("https://uk.bookshop.org/beta-search?bkshp-astro=t&keywords=9780060125639");
     expect(byId.oxfam).toBe("https://onlineshop.oxfam.org.uk/searchresults?Ntt=9780060125639");
     expect(byId.bookbrainz).toBeUndefined(); // name search only, so no ISBN link
     expect(buildLinks(DEFAULT_SITES, { isbn: "9780060125639", title: "The Dispossessed" }).map((l) => l.id)).toContain("bookbrainz");
