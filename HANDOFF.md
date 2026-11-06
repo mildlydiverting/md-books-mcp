@@ -99,8 +99,8 @@ Suggested order. Kim approves each step before it starts.
   with no API or a bot check (Biblio, Bookshop.org UK, World of Books,
   WorldCat). Templates only; nothing is fetched. Kim can add sites in
   `~/.config/md-books-mcp/links.json` (example in `links.example.json`). Bookshop,
-  WorldCat and Hardcover URL patterns are unverified because they block scripts:
-  ask Kim to click each once. Biblio's pattern came from Kim. Her local library
+  WorldCat, Hardcover and Oxfam URL patterns are unverified because they block scripts:
+  ask Kim to click each once. Biblio's pattern came from Kim. Oxfam's (`/searchresults?Ntt=`) was inferred from the shop's own JavaScript (an Oracle Commerce/Endeca store); Kim's category URL was not a search address. Her local library
   catalogue is not added yet; it needs its search URL.
 - **Wikidata rate limits** are strict. Calls go through a serial queue with one
   retry on 429. Wikidata is excluded from default book fan-out
