@@ -368,7 +368,8 @@ describe("search links", async () => {
     expect(byId.biblio).toBe("https://biblio.co.uk/booksearch/keyisbn/9780060125639");
     expect(byId.hardcover).toBe("https://hardcover.app/search?q=9780060125639");
     expect(byId["bookshop-uk"]).toBe("https://uk.bookshop.org/beta-search?bkshp-astro=t&keywords=9780060125639");
-    expect(byId.oxfam).toBe("https://onlineshop.oxfam.org.uk/searchresults?Ntt=9780060125639");
+    expect(byId.oxfam).toBe("https://onlineshop.oxfam.org.uk/searchresults?N=&No=0&Nr=product.active:1&type=search&Nf=sku.listPrice%7CGT+0&Ns=null&Ntk=&Nrpp=30&Ntt=9780060125639");
+    expect(byId.ebay).toBe("https://www.ebay.co.uk/sch/267/i.html?_nkw=9780060125639&_from=R40");
     expect(byId.bookbrainz).toBeUndefined(); // name search only, so no ISBN link
     expect(buildLinks(DEFAULT_SITES, { isbn: "9780060125639", title: "The Dispossessed" }).map((l) => l.id)).toContain("bookbrainz");
   });
