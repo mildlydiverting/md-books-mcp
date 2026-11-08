@@ -1,6 +1,6 @@
 # Handoff: md-books-mcp
 
-Last updated 2026-11-05. Read this first, then `README.md`.
+Last updated 2026-11-08. Read this first, then `README.md`.
 
 ## Where we are
 
@@ -10,11 +10,15 @@ All seven sources are verified against live data. 60 tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
-- The folder is still named `mcp-google-books`. Rename it to `md-books-mcp`
-  (see "Folder rename" below). The package name, server name and README
-  already say `md-books-mcp`.
-- No GitHub remote. Code is local only, so the other Mac cannot pull it.
+- SSH to GitHub fails from this Mac (`Permission denied (publickey)`), so
+  `main` has no upstream tracking. Fix the key (`ssh-add --apple-use-keychain
+  ~/.ssh/id_ed25519` or `gh ssh-key add ~/.ssh/id_ed25519.pub`), then
+  `git push -u origin main`. Check the other Mac can clone.
 - Not published to npm, so `npx md-books-mcp` does not work yet.
+
+**Done 2026-11-08:** folder renamed to `md-books-mcp`, Claude Code registration
+updated, private repo at https://github.com/mildlydiverting/md-books-mcp
+(first push went over HTTPS via `gh`).
 
 ## What exists
 
@@ -50,7 +54,8 @@ It is registered and tested in Claude Code and Claude Desktop.
 
 Suggested order. Kim approves each step before it starts.
 
-1. Rename the folder, update the two registrations, push to a new GitHub repo.
+1. Fix SSH and set upstream tracking (see above). Check the Claude Desktop
+   path points at the new folder.
 2. Try the tools from a real session on an Obsidian note (a book or author
    mention, then a citation). This is the actual use case and has only been
    exercised over raw stdio and in a smoke test.
@@ -137,17 +142,3 @@ Suggested order. Kim approves each step before it starts.
 - **Kim's conventions** (global CLAUDE.md): British English; one clarifying
   question at a time; propose a plan before large changes; version files with a
   changelog block; commit messages end with the Co-Authored-By line.
-
-## Folder rename
-
-Do this when no Claude session has the folder open:
-
-```bash
-mv ~/Development/mcp-google-books ~/Development/md-books-mcp
-```
-
-Then:
-- Claude Code: `claude mcp remove books`, then re-add from the new folder
-  (README has the command; local scope is keyed to the project path).
-- Claude Desktop: change the path in `claude_desktop_config.json`, restart.
-- Check `git status` is clean and `npm test` passes in the new location.
