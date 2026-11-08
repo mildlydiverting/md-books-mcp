@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    "csl",
     "src",
     "README.md",
     "LICENSE"
@@ -35,6 +36,8 @@
   "author": "Kim Plowright",
   "license": "MIT",
   "dependencies": {
+    "@citation-js/core": "0.9.0",
+    "@citation-js/plugin-csl": "0.9.0",
     "@modelcontextprotocol/server": "^2.4.0",
     "fast-xml-parser": "5.11.2",
     "zod": "^4.6.7"

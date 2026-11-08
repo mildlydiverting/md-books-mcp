@@ -90,8 +90,8 @@ Suggested order. Kim approves each step before it starts.
 - **Place of publication** (`Book.place`) is filled only from data a source
   already returns: Open Library editions (`publish_places`), Library of
   Congress (`placeTerm`), Crossref (`publisher-location`). Kim's rule: never
-  spend extra API calls to find it without asking her first. Harvard and
-  Chicago print it when present; when missing, `format_citation` adds a note
+  spend extra API calls to find it without asking her first. Harvard
+  and markdown print it when present (Chicago 17th no longer does); when missing, `format_citation` adds a note
   telling the agent to ask before looking further. Google Books and Hardcover
   do not give it. The markdown style prints it too.
 - **Open Library work id and edition** (`Book.identifiers.openlibrary_work`,
@@ -108,7 +108,7 @@ Suggested order. Kim approves each step before it starts.
   dependency). Keep it passing; refresh the schema by re-downloading it (see the
   README beside it). A trial of Citation.js and cross-project findings are in
   `~/Development/_development-notes/md-tools-pkim/_citation-engines-findings.md`.
-  The five standard styles are still hand-rolled; migration is undecided.
+  APA, MLA, Chicago and Harvard now come from Citation.js 0.9.0 with the official CSL files in `csl/` (CC BY-SA, see `csl/README.md`); BibTeX stays hand-written because Citation.js's BibTeX turned a full date into `month = {may 14}`. Chicago is the 17th-edition notes-bibliography form, which drops the place; `Book.place` stays in the data. Wikipedia, markdown and CSL-JSON are hand-written (no CSL style exists for them).
 - **BookBrainz.** Spec: `https://api.bookbrainz.org/1/docs/json`. Search is
   name-only and its hits have no authors or publishers, so the top five are
   hydrated one at a time (paced 700 ms), which makes a search take about

@@ -234,7 +234,7 @@ export function registerTools(server: McpServer): void {
     "format_citation",
     {
       description:
-        "Format a citation for a book in APA 7, MLA 9, Chicago (bibliography entry), Harvard (Cite Them Right), BibTeX, Wikipedia (a {{cite book}} template for adding a source to an article), CSL-JSON (for Zotero and similar) or markdown (Kim's house format, with an ISBN search link and an Open Library work link). Harvard, Chicago and markdown include the place of publication when the record has it; markdown needs an ISBN lookup to get the Open Library work id. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
+        "Format a citation for a book in APA 7, MLA 9, Chicago 17 (bibliography entry), Harvard (Cite Them Right 12), BibTeX, Wikipedia (a {{cite book}} template for adding a source to an article), CSL-JSON (for Zotero and similar) or markdown (Kim's house format, with an ISBN search link and an Open Library work link). Harvard and markdown include the place of publication when the record has it (APA, MLA and Chicago 17th do not); markdown needs an ISBN lookup to get the Open Library work id. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
       inputSchema: z.object({
         style: z.enum(CITATION_STYLES).describe("Citation style"),
         source: z.string().optional().describe("Source id, from search_books"),

@@ -46,28 +46,43 @@ describe("google books mapping", () => {
 
 describe("citations", () => {
   const book = toBook(volume);
+  // APA, MLA, Chicago and Harvard come from Citation.js with the official CSL files, so these
+  // tests pin what those styles produce for our records rather than our own rules.
   it("APA", () => {
     expect(formatCitation(book, "apa")).toBe("Le Guin, U. K. (2003). *The Dispossessed: An Ambiguous Utopia*. Harper.");
   });
   it("MLA", () => {
     expect(formatCitation(book, "mla")).toBe("Le Guin, Ursula K. *The Dispossessed: An Ambiguous Utopia*. Harper, 2003.");
   });
-  it("Harvard", () => {
+  it("Harvard (Cite Them Right)", () => {
     expect(formatCitation(book, "harvard")).toBe("Le Guin, U.K. (2003) *The Dispossessed: An Ambiguous Utopia*. Harper.");
     const two = { ...book, authors: ["Ann Smith", "Bo Jones"] };
     expect(formatCitation(two, "harvard")).toContain("Smith, A. and Jones, B. (2003)");
     const many = { ...book, authors: ["Ann Smith", "Bo Jones", "Cy Lee", "Di Wu"] };
-    expect(formatCitation(many, "harvard")).toContain("Smith, A. et al. (2003)");
-    expect(formatCitation({ ...book, authors: [], publishedDate: undefined }, "harvard")).toBe("(no date) *The Dispossessed: An Ambiguous Utopia*. Harper.");
+    expect(formatCitation(many, "harvard")).toContain("Smith, A. *et al.* (2003)");
+    expect(formatCitation({ ...book, authors: [], publishedDate: undefined }, "harvard")).toBe("*The Dispossessed: An Ambiguous Utopia* (no date). Harper.");
   });
-  it("uses the place of publication when the record has it", () => {
+  it("prints the edition statement when the record has one", () => {
+    const ed = { ...book, edition: "2nd ed." };
+    expect(formatCitation(ed, "apa")).toContain("(2nd ed.)");
+    expect(formatCitation(ed, "harvard")).toContain("2nd ed.");
+    expect(formatCitation(ed, "mla")).toContain("2nd ed.");
+    expect(formatCitation(ed, "chicago")).toContain("2nd ed.");
+    expect(formatCitation(ed, "bibtex")).toContain("edition = {2nd ed.}");
+  });
+  it("decodes html entities from the engine", () => {
+    const amp = { ...book, authors: ["Ann Smith", "Bo Jones"], title: "Salt & Light", subtitle: undefined };
+    expect(formatCitation(amp, "apa")).toContain("Salt & Light");
+    expect(formatCitation(amp, "apa")).not.toContain("&#");
+  });
+  it("uses the place of publication where the style wants it", () => {
     const placed = { ...book, place: "London" };
     expect(formatCitation(placed, "harvard")).toBe("Le Guin, U.K. (2003) *The Dispossessed: An Ambiguous Utopia*. London: Harper.");
-    expect(formatCitation(placed, "chicago")).toBe("Le Guin, Ursula K. *The Dispossessed: An Ambiguous Utopia*. London: Harper, 2003.");
     expect(formatCitation(placed, "bibtex")).toContain("address = {London}");
-    // APA and MLA do not print a place.
+    // APA, MLA and Chicago (17th edition) do not print a place.
     expect(formatCitation(placed, "apa")).not.toContain("London");
     expect(formatCitation(placed, "mla")).not.toContain("London");
+    expect(formatCitation(placed, "chicago")).not.toContain("London");
     // A place without a publisher has nothing to attach to.
     expect(formatCitation({ ...placed, publisher: undefined }, "harvard")).not.toContain("London");
   });

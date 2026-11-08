@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { Cite, plugins } from "@citation-js/core";
+import "@citation-js/plugin-csl";
 import type { Book } from "../types.js";
 
 export const CITATION_STYLES = ["apa", "mla", "chicago", "harvard", "bibtex", "wikipedia", "csl-json", "markdown"] as const;
@@ -25,78 +28,53 @@ function splitName(name: string): { family: string; given: string } {
   return { family: words.slice(start).join(" "), given: words.slice(0, start).join(" ") };
 }
 
-function initials(given: string): string {
-  return given
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => `${w[0]?.toUpperCase()}.`)
-    .join(" ");
-}
-
-function list(items: string[], last: string): string {
-  if (items.length <= 1) return items[0] ?? "";
-  return `${items.slice(0, -1).join(", ")}${items.length > 2 ? "," : ""} ${last} ${items[items.length - 1]}`;
-}
-
-function apa(book: Book): string {
-  const names = book.authors.map((a) => {
-    const { family, given } = splitName(a);
-    return given ? `${family}, ${initials(given)}` : family;
-  });
-  const who = names.length > 20 ? `${names.slice(0, 19).join(", ")}, ... ${names[names.length - 1]}` : list(names, "&");
-  return [
-    who ? `${who} ` : "",
-    `(${year(book) ?? "n.d."}). `,
-    `*${fullTitle(book)}*.`,
-    book.publisher ? ` ${book.publisher}.` : "",
-  ].join("");
-}
-
 /** "London: Harper" when the place is known, else "Harper". */
 const withPlace = (book: Book): string | undefined =>
   book.publisher ? (book.place ? `${book.place}: ${book.publisher}` : book.publisher) : undefined;
 
-/**
- * Harvard, in the Cite Them Right (UK) form: "Le Guin, U.K. (1974) *Title*. London: Harper."
- * Four or more authors become "first et al.". The place is used only when the record already
- * has it; otherwise it is left out.
- */
-function harvard(book: Book): string {
-  const names = book.authors.map((a) => {
-    const { family, given } = splitName(a);
-    return given ? `${family}, ${initials(given).replace(/ /g, "")}` : family;
-  });
-  const who = names.length >= 4 ? `${names[0]} et al.` : list(names, "and");
-  return [
-    who ? `${who} ` : "",
-    `(${year(book) ?? "no date"}) `,
-    `*${fullTitle(book)}*.`,
-    book.publisher ? ` ${withPlace(book)}.` : "",
-  ].join("");
-}
+// --- standard styles: Citation.js running the official CSL style files in ../../csl ---------
 
-function mla(book: Book): string {
-  const [first, second, ...rest] = book.authors.map(splitName);
-  let who = "";
-  if (first) {
-    const lead = first.given ? `${first.family}, ${first.given}` : first.family;
-    if (rest.length > 0) who = `${lead}, et al.`;
-    else if (second) who = `${lead}, and ${second.given} ${second.family}`.trim();
-    else who = lead;
+/** Our style name -> CSL file (in `csl/`, copied unchanged from the CSL styles repository). */
+const CSL_FILES = {
+  apa: "apa.csl", // APA 7th edition
+  mla: "modern-language-association.csl", // MLA 9th edition
+  chicago: "chicago-notes-bibliography.csl", // Chicago 17th edition, bibliography entry (no place of publication)
+  harvard: "harvard-cite-them-right.csl", // Cite Them Right 12th edition (UK Harvard)
+} as const;
+type CslStyle = keyof typeof CSL_FILES;
+
+let registered = false;
+function registerStyles(): void {
+  if (registered) return;
+  const styles = plugins.config.get("@csl").styles as { add(name: string, xml: string): void };
+  for (const [name, file] of Object.entries(CSL_FILES)) {
+    styles.add(name, readFileSync(new URL(`../../csl/${file}`, import.meta.url), "utf8"));
   }
-  const tail = [book.publisher, year(book)].filter(Boolean).join(", ");
-  return `${who ? `${who.replace(/\.$/, "")}. ` : ""}*${fullTitle(book)}*.${tail ? ` ${tail}.` : ""}`;
+  registered = true;
 }
 
-function chicago(book: Book): string {
-  const [first, ...others] = book.authors.map(splitName);
-  const names = [
-    first ? (first.given ? `${first.family}, ${first.given}` : first.family) : "",
-    ...others.map((o) => `${o.given} ${o.family}`.trim()),
-  ].filter(Boolean);
-  const who = list(names, "and");
-  const pub = [withPlace(book), year(book)].filter(Boolean).join(", ");
-  return `${who ? `${who.replace(/\.$/, "")}. ` : ""}*${fullTitle(book)}*.${pub ? ` ${pub}.` : ""}`;
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+
+/** Citation.js html bibliography entry -> markdown-ish text: italics become *...*, other tags go. */
+function htmlEntryToText(html: string): string {
+  const entry = /<div[^>]*class="csl-entry"[^>]*>([\s\S]*?)<\/div>/.exec(html)?.[1] ?? html;
+  return entry
+    .replace(/<\/?(?:i|em)>/g, "*")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, name: string) => ENTITIES[name.toLowerCase()] ?? m)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function csl(book: Book, style: CslStyle): string {
+  registerStyles();
+  const items = JSON.parse(cslJson(book)) as Record<string, unknown>[];
+  // A place with no publisher has nothing to attach to; leave it out of the printed citation (the data keeps it).
+  for (const item of items) if (!item.publisher) delete item["publisher-place"];
+  const html = new Cite(items).format("bibliography", { format: "html", template: style, lang: "en-GB" }) as string;
+  return htmlEntryToText(html);
 }
 
 function bibtex(book: Book): string {
@@ -107,6 +85,7 @@ function bibtex(book: Book): string {
     ["title", fullTitle(book)],
     ["publisher", book.publisher],
     ["address", book.place],
+    ["edition", book.edition],
     ["year", year(book)],
     ["isbn", book.isbn13 ?? book.isbn10],
   ];
@@ -198,7 +177,7 @@ function markdown(book: Book, opts: CitationOptions): string {
 }
 
 /** Styles that print the place of publication when it is known. */
-export const STYLES_WITH_PLACE: readonly CitationStyle[] = ["harvard", "chicago", "markdown"];
+export const STYLES_WITH_PLACE: readonly CitationStyle[] = ["harvard", "markdown"];
 
 export interface CitationOptions {
   /** Search link for the ISBN, used by the markdown style. */
@@ -212,13 +191,10 @@ export interface CitationOptions {
 export function formatCitation(book: Book, style: CitationStyle, opts: CitationOptions = {}): string {
   switch (style) {
     case "apa":
-      return apa(book);
     case "mla":
-      return mla(book);
     case "chicago":
-      return chicago(book);
     case "harvard":
-      return harvard(book);
+      return csl(book, style);
     case "bibtex":
       return bibtex(book);
     case "wikipedia":

@@ -13,11 +13,11 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 - **`get_author`** `{ source, id }`: bio, name variants and identifiers in other systems (Wikidata, VIAF, ISNI, Library of Congress, BookBrainz), which is how records from different sources will be joined.
 - **`find_elsewhere`** `{ isbn }` or `{ title, author }`: ready-made search links for shops, libraries and catalogues with no usable API (Biblio, Bookshop.org UK, World of Books, WorldCat and more). Nothing is fetched, so it is instant; the links open in a browser. See *Search links* below
 - **`format_citation`** `{ style, source, id }` or `{ style, isbn }`: eight styles.
-  - `apa` (APA 7), `mla` (MLA 9), `chicago` (bibliography entry), `harvard` (Cite Them Right), `bibtex`.
+  - `apa` (APA 7), `mla` (MLA 9), `chicago` (17th edition bibliography entry), `harvard` (Cite Them Right 12th edition), `bibtex`. These four are made by [Citation.js](https://citation.js.org) running the official [CSL](https://citationstyles.org) style files in `csl/`, so they follow the published styles, print edition statements, and handle authorless and many-author books properly. BibTeX is our own.
   - `wikipedia`: a `{{cite book}}` template, for adding a source to a Wikipedia article (not for citing Wikipedia). Includes the Open Library edition id as `ol=` when known.
   - `csl-json`: a one-item [CSL-JSON](https://github.com/citation-style-language/schema#csl-json-schema) array, for Zotero and similar.
   - `markdown`: a house format, `Surname, Firstnames (yyyy) _Title_. \[edition\]. Place: Publisher. [ISBN](search link) Open Library: [OL…W](work link)`. The ISBN links to Biblio by default; pass `isbn_link_site` (`worldcat` also works) to change it. Parts the record lacks are left out.
-  - Harvard, Chicago and markdown print the place of publication when the record already has it (Open Library editions, Library of Congress, Crossref); the server never makes a request just to find it, and tells the agent to ask you first if it is missing.
+  - Harvard and markdown print the place of publication (APA, MLA and Chicago 17th do not) when the record already has it (Open Library editions, Library of Congress, Crossref); the server never makes a request just to find it, and tells the agent to ask you first if it is missing.
   - The Open Library work id and edition statement come from an ISBN lookup (one small extra request inside the server). Look books up by ISBN for the fullest result; Library of Congress records add an edition statement when the catalogue has one.
   - Author names are split by a simple rule (last word, plus particles like "Le" or "van"), so check unusual names by eye.
 
