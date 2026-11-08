@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All seven sources are verified against live data. 49 unit tests pass.
+All seven sources are verified against live data. 60 tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -98,6 +98,12 @@ Suggested order. Kim approves each step before it starts.
   often has one. The Wikipedia `ol=` parameter (id without the `OL` prefix) was
   written from memory of the template docs, not checked: Wikimedia refused
   scripted requests to the docs.
+- **CSL-JSON conformance.** `tests/csl-json.test.ts` validates the `csl-json`
+  output against the official schema vendored in `tests/fixtures/` (ajv, dev
+  dependency). Keep it passing; refresh the schema by re-downloading it (see the
+  README beside it). A trial of Citation.js and cross-project findings are in
+  `~/Development/_development-notes/md-tools-pkim/_citation-engines-findings.md`.
+  The five standard styles are still hand-rolled; migration is undecided.
 - **BookBrainz.** Spec: `https://api.bookbrainz.org/1/docs/json`. Search is
   name-only and its hits have no authors or publishers, so the top five are
   hydrated one at a time (paced 700 ms), which makes a search take about
