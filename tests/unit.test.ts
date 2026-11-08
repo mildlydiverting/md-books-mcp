@@ -400,3 +400,47 @@ describe("search links", async () => {
     expect(mergeSites(JSON.stringify([{ id: "empty" }])).warnings[0]).toMatch(/neither isbnUrl nor queryUrl/);
   });
 });
+
+describe("wikipedia, CSL-JSON and markdown citations", () => {
+  const base = {
+    source: "openlibrary",
+    id: "isbn:9780060125639",
+    title: "The Dispossessed",
+    subtitle: "An Ambiguous Utopia",
+    authors: ["Ursula K. Le Guin", "Pat Smith"],
+    publisher: "Harper Pub.",
+    place: "New York",
+    publishedDate: "1999-05-14",
+    edition: "2nd ed.",
+    isbn13: "9780060125639",
+    identifiers: { openlibrary_edition: "OL5424470M", openlibrary_work: "OL59863W" },
+  };
+
+  it("Wikipedia cite book", () => {
+    expect(formatCitation(base, "wikipedia")).toBe(
+      "{{cite book |last1=Le Guin |first1=Ursula K. |last2=Smith |first2=Pat |title=The Dispossessed: An Ambiguous Utopia |date=1999-05-14 |edition=2nd ed. |publisher=Harper Pub. |location=New York |isbn=9780060125639 |ol=5424470M}}",
+    );
+    expect(formatCitation({ ...base, title: "A|B" }, "wikipedia")).toContain("title=A{{!}}B");
+  });
+
+  it("CSL-JSON is a valid one-item array", () => {
+    const [item] = JSON.parse(formatCitation(base, "csl-json"));
+    expect(item.type).toBe("book");
+    expect(item.author[0]).toEqual({ family: "Le Guin", given: "Ursula K." });
+    expect(item.issued).toEqual({ "date-parts": [[1999, 5, 14]] });
+    expect(item["publisher-place"]).toBe("New York");
+    expect(item.ISBN).toBe("9780060125639");
+    expect(item.edition).toBe("2nd ed.");
+  });
+
+  it("markdown: full record", () => {
+    expect(formatCitation(base, "markdown", { isbnLink: "https://biblio.co.uk/booksearch/keyisbn/9780060125639" })).toBe(
+      "Le Guin, Ursula K.; Smith, Pat (1999) _The Dispossessed: An Ambiguous Utopia_. \\[2nd ed\\]. New York: Harper Pub. [9780060125639](https://biblio.co.uk/booksearch/keyisbn/9780060125639) Open Library: [OL59863W](https://openlibrary.org/works/OL59863W)",
+    );
+  });
+
+  it("markdown: leaves out what the record lacks", () => {
+    const bare = { source: "x", id: "1", title: "Thing", authors: ["A. Person"] };
+    expect(formatCitation(bare, "markdown")).toBe("Person, A. (n.d.) _Thing_.");
+  });
+});

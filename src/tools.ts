@@ -234,25 +234,41 @@ export function registerTools(server: McpServer): void {
     "format_citation",
     {
       description:
-        "Format a citation for a book in APA 7, MLA 9, Chicago (bibliography entry), Harvard (Cite Them Right) or BibTeX. Harvard and Chicago include the place of publication when the record has it. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
+        "Format a citation for a book in APA 7, MLA 9, Chicago (bibliography entry), Harvard (Cite Them Right), BibTeX, Wikipedia (a {{cite book}} template for adding a source to an article), CSL-JSON (for Zotero and similar) or markdown (Kim's house format, with an ISBN search link and an Open Library work link). Harvard, Chicago and markdown include the place of publication when the record has it; markdown needs an ISBN lookup to get the Open Library work id. Author names are split naively, so check unusual names by eye. For an accurate edition (publisher, year) pass an ISBN: records found by title or author may be a work without edition details.",
       inputSchema: z.object({
         style: z.enum(CITATION_STYLES).describe("Citation style"),
         source: z.string().optional().describe("Source id, from search_books"),
         id: z.string().optional().describe("Source-native id, from search_books"),
         isbn: z.string().optional().describe("ISBN-10 or ISBN-13, as an alternative to source + id"),
+        isbn_link_site: z
+          .string()
+          .optional()
+          .describe("Markdown style only: which site the ISBN links to, by id from find_elsewhere (default biblio; worldcat also works)"),
       }),
       annotations: readOnly,
     },
-    async ({ style, ...ref }) =>
+    async ({ style, isbn_link_site, ...ref }) =>
       guard(async () => {
         const book = await resolveBook(ref);
         if (typeof book === "string") return fail(book);
-        const citation = formatCitation(book, style);
+        let isbnLink: string | undefined;
+        const warnings: string[] = [];
+        if (style === "markdown") {
+          const isbn = book.isbn13 ?? book.isbn10;
+          const wanted = isbn_link_site?.trim() || "biblio";
+          const { sites } = loadSites();
+          const site = sites.find((x) => x.id === wanted && x.isbnUrl);
+          if (isbn && site) isbnLink = buildLinks([site], { isbn })[0]?.url;
+          else if (isbn) warnings.push(`no ISBN search link for site "${wanted}", so the ISBN is plain text.`);
+          if (!book.identifiers?.openlibrary_work) warnings.push("no Open Library work id on this record, so that part is left out. Look the book up by ISBN to get it.");
+        }
+        const citation = formatCitation(book, style, { isbnLink });
         const missingPlace = STYLES_WITH_PLACE.includes(style) && book.publisher && !book.place;
         const note = missingPlace
           ? "\n\nNote: this record has no place of publication, so the citation omits it. Finding it needs an extra lookup; ask the user before making one."
           : "";
-        return text(citation + note, { style, book });
+        const extra = warnings.length ? `\n\nNote: ${warnings.join(" ")}` : "";
+        return text(citation + note + extra, { style, book });
       }),
   );
 

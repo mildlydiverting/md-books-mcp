@@ -6,7 +6,7 @@ Last updated 2026-11-05. Read this first, then `README.md`.
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All seven sources are verified against live data. 45 unit tests pass.
+All seven sources are verified against live data. 49 unit tests pass.
 It is registered and tested in Claude Code and Claude Desktop.
 
 **Not yet done:**
@@ -24,7 +24,7 @@ It is registered and tested in Claude Code and Claude Desktop.
 | Provider interface and source-agnostic `Book` / `Author` models | `src/types.ts` |
 | One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `bookbrainz`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
 | Shared HTTP, ISBN, citation, pacing, language and search-link helpers | `src/lib/` |
-| Citation styles: APA, MLA, Chicago, BibTeX | `src/lib/citation.ts` |
+| Citation styles: APA, MLA, Chicago, Harvard, BibTeX, Wikipedia `{{cite book}}`, CSL-JSON, markdown (house format) | `src/lib/citation.ts` |
 | Tests | `tests/unit.test.ts` |
 
 **Sources**
@@ -88,7 +88,16 @@ Suggested order. Kim approves each step before it starts.
   spend extra API calls to find it without asking her first. Harvard and
   Chicago print it when present; when missing, `format_citation` adds a note
   telling the agent to ask before looking further. Google Books and Hardcover
-  do not give it.
+  do not give it. The markdown style prints it too.
+- **Open Library work id and edition** (`Book.identifiers.openlibrary_work`,
+  `openlibrary_edition`, `Book.edition`). The quick ISBN lookup does not name
+  the work, so `editionByIsbn` makes one extra, fail-soft request to
+  `/books/OL…M.json` (server-side, no token cost). Kim asked for the work id in
+  her markdown format, so this was judged worth it; she has not been told it is
+  an extra call until now. Edition statements are rare in Open Library; LoC
+  often has one. The Wikipedia `ol=` parameter (id without the `OL` prefix) was
+  written from memory of the template docs, not checked: Wikimedia refused
+  scripted requests to the docs.
 - **BookBrainz.** Spec: `https://api.bookbrainz.org/1/docs/json`. Search is
   name-only and its hits have no authors or publishers, so the top five are
   hydrated one at a time (paced 700 ms), which makes a search take about

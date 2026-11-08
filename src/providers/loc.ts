@@ -140,6 +140,14 @@ function dateOf(mods: X): string | undefined {
   return undefined;
 }
 
+function editionOf(mods: X): string | undefined {
+  for (const info of objs(mods.originInfo)) {
+    const raw = text(info.edition);
+    if (raw) return raw.replace(/^\[|\]$/g, "").replace(/[\s,;:/.]+$/, "");
+  }
+  return undefined;
+}
+
 function identifiersOf(mods: X, type: string): string[] {
   return arr(mods.identifier)
     .filter((i) => attr(i, "type") === type)
@@ -176,6 +184,7 @@ export function modsToBook(mods: X): Book | undefined {
     authors: authorsOf(mods),
     publisher: publisherOf(mods),
     place: placeOf(mods),
+    edition: editionOf(mods),
     publishedDate: dateOf(mods),
     isbn10,
     isbn13,

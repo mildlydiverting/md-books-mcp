@@ -41,8 +41,14 @@ interface OlEdition {
   publish_places?: { name: string }[];
   publish_date?: string;
   subjects?: { name: string }[];
-  identifiers?: { isbn_10?: string[]; isbn_13?: string[] };
+  identifiers?: { isbn_10?: string[]; isbn_13?: string[]; openlibrary?: string[] };
   cover?: { medium?: string; large?: string };
+}
+
+/** The full edition record (`/books/OL…M.json`): the only place that names the work and edition statement. */
+interface OlEditionRecord {
+  works?: { key: string }[];
+  edition_name?: string;
 }
 
 interface OlAuthorSearchDoc {
@@ -81,6 +87,7 @@ export function workToBook(doc: OlDoc): Book {
   return {
     source: "openlibrary",
     id: workId(doc.key),
+    identifiers: { openlibrary_work: workId(doc.key) },
     title: doc.title ?? "(untitled)",
     subtitle: doc.subtitle,
     authors: doc.author_name ?? [],
@@ -104,6 +111,7 @@ export function editionToBook(isbn: string, e: OlEdition): Book {
     publisher: e.publishers?.[0]?.name,
     place: e.publish_places?.[0]?.name,
     publishedDate: e.publish_date,
+    identifiers: e.identifiers?.openlibrary?.[0] ? { openlibrary_edition: e.identifiers.openlibrary[0] } : undefined,
     isbn10: e.identifiers?.isbn_10?.[0],
     isbn13: e.identifiers?.isbn_13?.[0],
     subjects: e.subjects?.slice(0, 10).map((s) => s.name),
@@ -177,7 +185,22 @@ async function editionByIsbn(isbn: string): Promise<Book | undefined> {
     { headers: headers() },
   );
   const edition = data[key];
-  return edition ? editionToBook(isbn, edition) : undefined;
+  if (!edition) return undefined;
+  const book = editionToBook(isbn, edition);
+  // One small extra request, for the work id and edition statement the quick lookup leaves out.
+  // Failure is fine: the book is still good without them.
+  const editionId = book.identifiers?.openlibrary_edition;
+  if (editionId) {
+    try {
+      const full = await getJson<OlEditionRecord>(`${BASE}/books/${editionId}.json`, { headers: headers() });
+      const work = full.works?.[0]?.key;
+      if (work) book.identifiers = { ...book.identifiers, openlibrary_work: workId(work) };
+      if (full.edition_name?.trim()) book.edition = full.edition_name.trim();
+    } catch {
+      /* leave out */
+    }
+  }
+  return book;
 }
 
 export const openLibraryProvider: BookProvider = {
