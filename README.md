@@ -44,17 +44,19 @@ Open Library works with no setup. Google Books needs an API key. Keyless request
 
 ```bash
 npm install && npm run build
-claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -- node /Users/kimplowright/Development/md-books-mcp/dist/index.js
+claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -- node "$(pwd)/dist/index.js"
 ```
 
-Claude Desktop (`claude_desktop_config.json`):
+(Run that from the project folder: `$(pwd)` fills in the full path to `dist/index.js`.)
+
+Claude Desktop (`claude_desktop_config.json`). Use the full path to `dist/index.js` on your machine. If node comes from nvm, use the full path to the node binary as `command`, because Desktop does not read your shell's PATH:
 
 ```json
 {
   "mcpServers": {
     "books": {
       "command": "node",
-      "args": ["/Users/kimplowright/Development/md-books-mcp/dist/index.js"],
+      "args": ["/path/to/md-books-mcp/dist/index.js"],
       "env": { "GOOGLE_BOOKS_API_KEY": "your-key", "HARDCOVER_API_KEY": "your-key" }
     }
   }
