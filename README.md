@@ -1,8 +1,10 @@
 # md-books-mcp
 
-An [MCP](https://modelcontextprotocol.io) server for finding books and making citations, so agents can look up books and authors mentioned in notes. Runs locally over stdio. Built on the v2 TypeScript SDK, which implements the [2026-07-28 spec](https://modelcontextprotocol.io/specification/2026-07-28).
+A small helper program that lets an AI assistant (such as Claude) look up books and authors, and write citations for them. It is an [MCP](https://modelcontextprotocol.io) server: it runs on your own computer, and your AI app talks to it.
 
-Sources are plugins. Open Library (no key) and Google Books (key needed) are built; others are planned (see below).
+You can ask things like "find this book by its ISBN", "who wrote this?", "give me an APA citation" or "where can I buy this?". It can also make shop links that carry your own affiliate ID, if you have one.
+
+It looks books up in several free catalogues (Open Library, Library of Congress, Hardcover, Google Books and others). Each one is a plug-in, so more can be added. It is an early release, so expect some rough edges.
 
 ## Tools
 
@@ -28,7 +30,7 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 | `openlibrary` | none | Title and author searches return *works* (first-publication year, no publisher or ISBN). An ISBN lookup returns the specific *edition* with publisher and date, so use an ISBN when you need a citation. Optional: set `OPENLIBRARY_CONTACT` (an email or URL) to be identified and get a higher rate limit. |
 | `loc` | none | Library of Congress. Cataloguer-quality *edition* records (publisher, date, ISBNs, LCCN, subject headings, page count) and name authorities for authors (full dates, variant names, VIAF, ISNI, Wikidata and GND ids). Titles come in cataloguing case ("The dispossessed"). American-leaning, and each edition is its own record, so expect several per title; the best match for an ISBN comes first. Ids are `lccn:<number>` or `isbn:<number>`. |
 | `wikidata` | none | Authority data: author identifiers (VIAF, ISNI, Library of Congress, Open Library, BookBrainz), plus notable works and editions that link to Open Library ids. Strict rate limits, so it is left out of default book searches: ask for it with `source: "wikidata"`. Author searches include it. No ISBN search. Optional `WIKIDATA_CONTACT`. |
-| `hardcover` | required (free) | Community catalogue, good on recent and genre fiction. Needs `HARDCOVER_API_KEY` (Hardcover account → Settings → Hardcover API → New API Key; the `read:catalog` scope is enough). Free tier: 60 requests a minute, 5,000 a day. Searches return works; lookups by id add the default print edition's publisher and ISBNs. Written from the docs and not yet run against the live API. Hardcover's terms bar using the API to train publicly available or commercial LLMs, and bar commercial use of user data; this server only reads catalogue data, for personal use. |
+| `hardcover` | required (free) | Community catalogue, good on recent and genre fiction. Needs `HARDCOVER_API_KEY` (Hardcover account → Settings → Hardcover API → New API Key; the `read:catalog` scope is enough). Free tier: 60 requests a minute, 5,000 a day. Searches return works; lookups by id add the default print edition's publisher and ISBNs. Hardcover's terms bar using the API to train publicly available or commercial LLMs, and bar commercial use of user data; this server only reads catalogue data, for personal use. |
 | `bookbrainz` | none | Open (CC0) community database from MetaBrainz. Strong on author identifiers (Wikidata, VIAF, ISNI, Open Library, Goodreads) and dates; editions carry publisher, date, pages and (on a by-id lookup) ISBN. Search matches names only, so ISBN search is not supported, and each search hit is filled in with a follow-up lookup for the top five, which makes searches take several seconds. Coverage is uneven, so it is left out of default book searches (use `source: "bookbrainz"`). Optional `BOOKBRAINZ_CONTACT` is added to the user agent. |
 | `crossref` | none | DOI registry. Academic and university-press books (monographs, edited volumes, reference works) with publisher, date, ISBNs, abstract and DOI; thin on trade books, and fuzzy matching is noisy, so it is left out of default searches (use `source: "crossref"`). Chapters are not returned. Ids are DOIs. Books only; Crossref has no author records. Optional `CROSSREF_CONTACT` (your email) moves requests to its faster polite pool. |
 | `googlebooks` | required | Editions with publisher, ISBNs, descriptions and covers. |
@@ -37,7 +39,32 @@ Book searches without a `source` fan out to every available general source (not 
 
 ## Install
 
-You need a Mac, Linux or Windows machine with [Node.js](https://nodejs.org) 20 or newer, and [Git](https://git-scm.com). To check Node, run `node --version`.
+You need [Node.js](https://nodejs.org) 20 or newer. To check, run `node --version`. This is an early release (0.1.x): expect rough edges.
+
+### Quickest: from npm
+
+1. Claude Code: run this.
+
+   ```bash
+   claude mcp add books -- npx -y md-books-mcp
+   ```
+
+2. Claude Desktop: add this inside `"mcpServers"` in its config file (Settings, Developer, Edit Config), then restart the app.
+
+   ```json
+   "books": {
+     "command": "npx",
+     "args": ["-y", "md-books-mcp"]
+   }
+   ```
+
+3. Ask the app to run `list_sources`. Open Library should say **Available**.
+
+To add keys and affiliate IDs, see *Setup* below. If Claude Desktop can't find `npx`, see the note there.
+
+### From source
+
+You also need [Git](https://git-scm.com).
 
 1. Download the code:
 
@@ -75,30 +102,42 @@ You need a Mac, Linux or Windows machine with [Node.js](https://nodejs.org) 20 o
 
 6. Restart the app, then ask it to run `list_sources`. Open Library should say **Available**.
 
-That is enough to search books and make citations with Open Library. For Google Books, Hardcover, affiliate links and the rest, add keys and IDs as described under *Setup*. If a step fails, the usual cause is Node being too old, or (Claude Desktop with nvm) `command` needing the full path to your node binary.
+That is enough to search books and make citations. To add keys and affiliate IDs, see *Setup* below. If a step fails, the usual cause is Node being too old (run `node --version`; you need 20 or newer).
 
 ## Setup
 
-Open Library works with no setup. Google Books needs an API key. Keyless requests share a quota of zero, so they fail with a 429.
+**Open Library, the Library of Congress and the other free catalogues need nothing.** The steps below are only for the extras:
 
-1. In [Google Cloud Console](https://console.cloud.google.com/), create a project, enable the **Books API**, and create an API key.
-2. Pass it to the server in your MCP client's `env` block. A bare `.env` file is not loaded.
+| You want | You need |
+| --- | --- |
+| Google Books | A free API key (step 1 below) |
+| Hardcover | A free API key from your Hardcover account |
+| Affiliate links | Your own Bookshop.org ID and/or Amazon Associates tag |
+
+1. **Get a Google Books key (optional).** In [Google Cloud Console](https://console.cloud.google.com/), create a project, switch on the **Books API**, and create an API key. Without a key, Google Books simply won't work; everything else does.
+2. **Put your keys in your AI app's settings.** The server does not read a `.env` file. You hand the keys over in the app's `env` section, as shown next. Leave out any you don't have.
+
+**Claude Code** (type this in Terminal; swap in your own values):
 
 ```bash
-npm install && npm run build
-claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -e BOOKSHOP_AFFILIATE_ID=your-bookshop-id -e AMAZON_ASSOCIATE_TAG=yourname-21 -- node "$(pwd)/dist/index.js"
+claude mcp add books \
+  -e GOOGLE_BOOKS_API_KEY=your-key \
+  -e HARDCOVER_API_KEY=your-key \
+  -e BOOKSHOP_AFFILIATE_ID=your-bookshop-id \
+  -e AMAZON_ASSOCIATE_TAG=yourname-21 \
+  -- npx -y md-books-mcp
 ```
 
-(Run that from the project folder: `$(pwd)` fills in the full path to `dist/index.js`.)
+(Installed from source instead? Replace `npx -y md-books-mcp` with `node "$(pwd)/dist/index.js"` and run it from the project folder.)
 
-Claude Desktop (`claude_desktop_config.json`). Use the full path to `dist/index.js` on your machine. If node comes from nvm, use the full path to the node binary as `command`, because Desktop does not read your shell's PATH:
+**Claude Desktop** (edit its config file: Settings, Developer, Edit Config):
 
 ```json
 {
   "mcpServers": {
     "books": {
-      "command": "node",
-      "args": ["/path/to/md-books-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "md-books-mcp"],
       "env": {
         "GOOGLE_BOOKS_API_KEY": "your-key",
         "HARDCOVER_API_KEY": "your-key",
@@ -110,9 +149,11 @@ Claude Desktop (`claude_desktop_config.json`). Use the full path to `dist/index.
 }
 ```
 
-The two affiliate entries and the Hardcover key are optional: leave out any you don't have. All the variables you can set are listed in [`.env.example`](.env.example). The server does not read a `.env` file, so the `env` block above is the simplest route: it works on any machine and needs nothing else installed. The catch is that your keys then sit in plain text in that config file, so don't commit or share it. If you'd rather not, load the values from a secret store (on macOS, the Keychain) in a small launcher script and point `command` at that script. Never put real values in this repo.
+Installed from source? Use `"command": "node"` and `"args": ["/full/path/to/md-books-mcp/dist/index.js"]` instead. If Desktop can't find `node` or `npx` (common when Node came from nvm), put the full path from `which node` or `which npx` in `command`.
 
-Try it with the Inspector: `npm run inspect`.
+**Keeping keys safe.** In that `env` section your keys sit in plain text in the config file, so don't share or commit that file. A safer option is a secret store (on a Mac, the Keychain) with a small launcher script as the `command`. Affiliate IDs are not secret, so they can stay in `env` either way. Never put real keys in this project's files. All the settings the server understands are listed in [`.env.example`](.env.example).
+
+**Check it works.** Restart the app and ask it to run `list_sources`. Each source says whether it is available. You can also try the tools by hand with `npm run inspect` (source install only).
 
 ## Adding a source
 
@@ -134,14 +175,21 @@ To add or change sites, create `~/.config/md-books-mcp/links.json` (or point `MD
 
 ### Affiliate links (optional)
 
-If you have affiliate IDs, set them as environment variables and the matching links carry them. Nothing changes when they are unset.
+If you have an affiliate ID, the shop links can carry it, so a purchase made through them pays you a small commission. Set the IDs as shown under *Setup*. Leave them out and nothing changes.
 
-| Variable | Effect |
+| Setting | What it does |
 | --- | --- |
-| `BOOKSHOP_AFFILIATE_ID` | The Bookshop.org (UK) ISBN link becomes `https://uk.bookshop.org/a/{id}/{isbn13}`. Title searches stay plain. |
-| `AMAZON_ASSOCIATE_TAG` | Adds an Amazon UK link, `https://www.amazon.co.uk/dp/{isbn10}?tag={tag}` (ISBN-10 only, so 979 ISBNs get none). Use a tag registered for amazon.co.uk. |
+| `BOOKSHOP_AFFILIATE_ID` | The Bookshop.org (UK) link for an ISBN becomes `https://uk.bookshop.org/a/{your-id}/{isbn13}`. Searches by title stay plain. |
+| `AMAZON_ASSOCIATE_TAG` | Adds an Amazon UK link, `https://www.amazon.co.uk/dp/{isbn10}?tag={your-tag}`. Use a tag registered for amazon.co.uk. Books with a 979 ISBN get no Amazon link, because Amazon needs the older 10-digit form. |
 
-IDs may contain letters, numbers, `_` and `-` only. Affiliate links are marked "(affiliate link)" in the output with a reminder to say so when you share them (both programmes expect disclosure). In the markdown citation, `isbn_link_site: "bookshop-uk"` or `"amazon-uk"` uses the affiliate link. These are public IDs rather than secrets, but keep your own out of the repo: set them in your MCP client config or launcher. The Bookshop.org link format comes from its affiliate material and has not been checked against every account, so open a link once to confirm it.
+Good to know:
+
+- **Telling people.** Affiliate links are labelled "(affiliate link)" in the output, with a reminder to say so when you share them. Both programmes expect that disclosure, so it is your responsibility.
+- **In citations.** In the `markdown` style, `isbn_link_site: "bookshop-uk"` or `"amazon-uk"` uses the affiliate link.
+- **Safe values.** An ID can only contain letters, numbers, `_` and `-`. Anything else is ignored with a warning.
+- **Your own files win.** A link you set in `links.json` replaces the built-in affiliate one.
+- **Not checked for every account.** The Bookshop.org link format comes from its affiliate material. Click one link to confirm it works for you.
+- **Keep your IDs out of this project's files.** They are public, but they are yours.
 
 ## Planned sources
 

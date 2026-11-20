@@ -4,26 +4,63 @@ Last updated 2026-11-20. Read this first, then `README.md`.
 
 ## Where we are
 
-A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
-books and authors from several pluggable sources and formats citations.
-All seven sources are verified against live data. 68 tests pass.
-It is registered and tested in Claude Code and Claude Desktop, including
-affiliate links (checked live in Desktop on 2026-11-20).
+A working server, run locally, that lets an AI assistant look up books and
+authors from several catalogues and write citations. It also makes shop links
+that can carry Kim's affiliate IDs. Seven catalogues are checked against live
+data. 76 tests pass. It is set up and working in Claude Code and Claude
+Desktop, and affiliate links were checked live in Desktop on 2026-11-20.
 
-**Not yet done:**
-- Not published to npm, so `npx md-books-mcp` does not work yet.
-- Affiliate links need Kim's own Bookshop.org ID. `2773` is a test ID from a
-  blog example (commission would go to its owner); replace it in her Desktop
-  config. Her Amazon UK tag is set locally and is not in the repo.
-- Last changes (the "(affiliate link)" wording, README affiliate/Install text)
-  may be uncommitted: check `git status`.
+**Ready to publish to npm, not yet published** (needs Kim: her npm account and
+two-factor code). Package details, file list and a clean-install check are done
+(see "Publishing to npm" below).
 
-**Done 2026-11-08:** folder renamed to `md-books-mcp`, Claude Code registration
-updated, GitHub repo `mildlydiverting/md-books-mcp`. SSH to GitHub has since
-been fixed and `main` tracks `origin/main`.
+**Still to do:**
+- Publish to npm (steps below). Until then `npx md-books-mcp` fails, and the
+  README's "Quickest: from npm" instructions will not work. Publish before
+  telling anyone to use them.
+- Kim's Bookshop.org affiliate ID is applied for. Until it arrives, Desktop
+  uses `2773`, a test ID from a blog post. Any commission from that goes to
+  its owner, not Kim. Swap in the real ID when it comes.
+- Kim's Amazon UK tag is set in her own Desktop config, not in this repo.
+- Check `git status`: README and package changes from 2026-11-20 may be
+  uncommitted.
 
-**Done 2026-11-20:** affiliate links, `.env.example` listing every variable,
-README Install section, ISBN-10/13 conversion (`src/lib/isbn.ts`).
+**Done 2026-11-20:**
+- Affiliate links (Bookshop.org UK, Amazon UK), marked "(affiliate link)".
+- `.env.example` lists every setting the server reads.
+- README rewritten in plain language: Install (npm and from source), Setup,
+  affiliate section.
+- Package details added for npm (`repository`, `homepage`, `bugs`, file list).
+- Clean install from a packed copy tested over the real protocol: all seven
+  tools listed, affiliate links and an APA citation worked.
+- New test `tests/package.test.ts` checks what npm would publish: it fails if
+  `dist`, `csl`, `links.example.json` or `.env.example` drop out, or if private
+  files sneak in. It needs `npm run build` first.
+- `fast-xml-parser` upgraded 5.11.2 to 5.12.1 to clear a low-severity warning.
+  Tests pass, and a live Library of Congress lookup still keeps the leading
+  zero in an ISBN.
+- Used for real on a note in the knowledge base (Tyler, drawing and painting
+  the nude). Kim said it looked good.
+
+**Done earlier:** folder renamed to `md-books-mcp`; GitHub repo
+`mildlydiverting/md-books-mcp`; SSH to GitHub fixed (`main` tracks
+`origin/main`); citation styles moved to Citation.js with the official CSL
+style files.
+
+## Publishing to npm
+
+Kim does these (they need her login). Run from the project folder.
+
+1. `npm run build`, then `npm test`. Both must pass (the package test needs the build).
+2. `npm pack --dry-run`. Check the file list includes `dist`, `csl`,
+   `links.example.json` and `.env.example`.
+3. `npm login` (with her two-factor code).
+4. `npm publish`. The name `md-books-mcp` looked free on 2026-11-20.
+5. In a spare folder, run `npx -y md-books-mcp` to confirm it starts (it waits
+   silently for a client; press Ctrl-C).
+6. Update this file: remove the "not published" lines above.
+7. For later releases: raise `version` in `package.json` first. npm will not
+   accept the same version twice.
 
 ## What exists
 
@@ -34,7 +71,7 @@ README Install section, ISBN-10/13 conversion (`src/lib/isbn.ts`).
 | One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `bookbrainz`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
 | Shared HTTP, ISBN, citation, pacing, language and search-link helpers | `src/lib/` |
 | Citation styles: APA, MLA, Chicago, Harvard, BibTeX, Wikipedia `{{cite book}}`, CSL-JSON, markdown (house format) | `src/lib/citation.ts` |
-| Tests | `tests/unit.test.ts`, `tests/csl-json.test.ts` |
+| Tests | `tests/unit.test.ts`, `tests/csl-json.test.ts`, `tests/package.test.ts` |
 
 **Sources**
 
@@ -76,7 +113,7 @@ Suggested order. Kim approves each step before it starts.
    - WorldCat and ISBNdb need paid or institutional keys.
    - Biblio, Bookshop.org UK and World of Books have no public API found.
      Check terms before any scraping.
-5. Optional: publish to npm so `npx` works.
+5. Publish to npm (see "Publishing to npm" above).
 6. Decisions for Kim, from the citation work: one written spec with worked
    examples for the house formats (smush, TASL, Wikipedia; smush exists three
    times elsewhere in her tools); Python route for standard styles (Node
@@ -94,7 +131,7 @@ Suggested order. Kim approves each step before it starts.
   do not try to get round it. Requests are paced one at a time (400 ms gap).
   LC records can cite other editions' ISBNs, so ISBN lookups put the record that
   carries that exact ISBN first. XML is parsed with `fast-xml-parser` (pinned
-  5.11.2); keep `parseTagValue: false` or ISBNs lose leading zeros.
+  5.12.1); keep `parseTagValue: false` or ISBNs lose leading zeros.
 - **Crossref.** Public pool is about one request a second (paced to 1.1 s);
   `CROSSREF_CONTACT` unlocks the polite pool. ISBN searches must keep the
   `type:` filter or they return chapters. Dates ending 31 December are treated
