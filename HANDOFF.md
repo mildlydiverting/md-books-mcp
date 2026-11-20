@@ -10,20 +10,14 @@ that can carry Kim's affiliate IDs. Seven catalogues are checked against live
 data. 76 tests pass. It is set up and working in Claude Code and Claude
 Desktop, and affiliate links were checked live in Desktop on 2026-11-20.
 
-**Ready to publish to npm, not yet published** (needs Kim: her npm account and
-two-factor code). Package details, file list and a clean-install check are done
-(see "Publishing to npm" below).
+**Published to npm as 0.1.0 on 2026-11-20** (Kim ran the publish). Next releases
+need a higher `version` first.
 
 **Still to do:**
-- Publish to npm (steps below). Until then `npx md-books-mcp` fails, and the
-  README's "Quickest: from npm" instructions will not work. Publish before
-  telling anyone to use them.
 - Kim's Bookshop.org affiliate ID is applied for. Until it arrives, Desktop
   uses `2773`, a test ID from a blog post. Any commission from that goes to
   its owner, not Kim. Swap in the real ID when it comes.
 - Kim's Amazon UK tag is set in her own Desktop config, not in this repo.
-- Check `git status`: README and package changes from 2026-11-20 may be
-  uncommitted.
 
 **Done 2026-11-20:**
 - Affiliate links (Bookshop.org UK, Amazon UK), marked "(affiliate link)".
@@ -61,6 +55,28 @@ Kim does these (they need her login). Run from the project folder.
 6. Update this file: remove the "not published" lines above.
 7. For later releases: raise `version` in `package.json` first. npm will not
    accept the same version twice.
+
+## Idea: GitHub Actions (not started)
+
+Whitney (`~/Development/whitney-mcp-ts/.github/workflows/`) has automatic
+checks on GitHub. Plan to copy two of them here; Kim has not approved the
+files yet.
+
+1. `ci.yml`: on every push and pull request to `main`, build and run the tests
+   on Node 20 and 22. Catches a broken commit before it ships.
+2. `release.yml`: when a version tag (for example `v0.1.1`) is pushed, build,
+   test and publish to npm. Uses npm "trusted publishing", so no token or
+   secret is stored. It needs a one-off setup by Kim on npmjs.com (package
+   settings, Trusted Publisher: this GitHub repo and the file name
+   `release.yml`). Renaming the file later breaks publishing until that
+   setting is updated.
+3. Not copying Whitney's monthly `canary.yml` yet. Here it would mean calling
+   seven public services; revisit if we write live-check tests for the
+   unverified link patterns.
+
+After that, a release is: raise `version` in `package.json`, commit, then
+`git tag v0.1.1 && git push --tags`. Replace the manual steps in "Publishing to
+npm" once it works.
 
 ## What exists
 
@@ -113,7 +129,7 @@ Suggested order. Kim approves each step before it starts.
    - WorldCat and ISBNdb need paid or institutional keys.
    - Biblio, Bookshop.org UK and World of Books have no public API found.
      Check terms before any scraping.
-5. Publish to npm (see "Publishing to npm" above).
+5. Optional: set up GitHub Actions (see "Idea: GitHub Actions" above).
 6. Decisions for Kim, from the citation work: one written spec with worked
    examples for the house formats (smush, TASL, Wikipedia; smush exists three
    times elsewhere in her tools); Python route for standard styles (Node
