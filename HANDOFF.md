@@ -1,24 +1,29 @@
 # Handoff: md-books-mcp
 
-Last updated 2026-11-08. Read this first, then `README.md`.
+Last updated 2026-11-20. Read this first, then `README.md`.
 
 ## Where we are
 
 A working, locally run MCP server (stdio, MCP spec 2026-07-28) that looks up
 books and authors from several pluggable sources and formats citations.
-All seven sources are verified against live data. 60 tests pass.
-It is registered and tested in Claude Code and Claude Desktop.
+All seven sources are verified against live data. 68 tests pass.
+It is registered and tested in Claude Code and Claude Desktop, including
+affiliate links (checked live in Desktop on 2026-11-20).
 
 **Not yet done:**
-- SSH to GitHub fails from this Mac (`Permission denied (publickey)`), so
-  `main` has no upstream tracking. Fix the key (`ssh-add --apple-use-keychain
-  ~/.ssh/id_ed25519` or `gh ssh-key add ~/.ssh/id_ed25519.pub`), then
-  `git push -u origin main`. Check the other Mac can clone.
 - Not published to npm, so `npx md-books-mcp` does not work yet.
+- Affiliate links need Kim's own Bookshop.org ID. `2773` is a test ID from a
+  blog example (commission would go to its owner); replace it in her Desktop
+  config. Her Amazon UK tag is set locally and is not in the repo.
+- Last changes (the "(affiliate link)" wording, README affiliate/Install text)
+  may be uncommitted: check `git status`.
 
 **Done 2026-11-08:** folder renamed to `md-books-mcp`, Claude Code registration
-updated, private repo at https://github.com/mildlydiverting/md-books-mcp
-(first push went over HTTPS via `gh`).
+updated, GitHub repo `mildlydiverting/md-books-mcp`. SSH to GitHub has since
+been fixed and `main` tracks `origin/main`.
+
+**Done 2026-11-20:** affiliate links, `.env.example` listing every variable,
+README Install section, ISBN-10/13 conversion (`src/lib/isbn.ts`).
 
 ## What exists
 
@@ -29,7 +34,7 @@ updated, private repo at https://github.com/mildlydiverting/md-books-mcp
 | One file per source | `src/providers/` (`openlibrary`, `loc`, `hardcover`, `wikidata`, `bookbrainz`, `crossref`, `googlebooks`), registered in `src/providers/index.ts` |
 | Shared HTTP, ISBN, citation, pacing, language and search-link helpers | `src/lib/` |
 | Citation styles: APA, MLA, Chicago, Harvard, BibTeX, Wikipedia `{{cite book}}`, CSL-JSON, markdown (house format) | `src/lib/citation.ts` |
-| Tests | `tests/unit.test.ts` |
+| Tests | `tests/unit.test.ts`, `tests/csl-json.test.ts` |
 
 **Sources**
 
@@ -45,6 +50,8 @@ updated, private repo at https://github.com/mildlydiverting/md-books-mcp
 
 **How secrets reach the server**
 - Both keys live in macOS Keychain under their own names, account `$USER`.
+- Affiliate IDs are not secrets: they go in the `env` block of the Desktop
+  entry (`BOOKSHOP_AFFILIATE_ID`, `AMAZON_ASSOCIATE_TAG`), beside the launcher.
 - `~/bin/mcp-keychain.sh NAME... -- command` exports them and execs the server.
 - Claude Code: registered as `books` (local scope, this project only).
 - Claude Desktop: entry in `claude_desktop_config.json`, same launcher.
@@ -54,24 +61,27 @@ updated, private repo at https://github.com/mildlydiverting/md-books-mcp
 
 Suggested order. Kim approves each step before it starts.
 
-1. Fix SSH and set upstream tracking (see above). Check the Claude Desktop
-   path points at the new folder.
-2. Try the tools from a real session on an Obsidian note (a book or author
+1. Try the tools from a real session on an Obsidian note (a book or author
    mention, then a citation). This is the actual use case and has only been
    exercised over raw stdio and in a smoke test.
-3. Tune the results: Hardcover returns junk such as study guides, and the
+2. Tune the results: Hardcover returns junk such as study guides, and the
    fan-out merge is a plain concatenation with no de-duplication across sources.
-4. Check the unverified search-link patterns and add Kim's local library.
-   Affiliate links (Bookshop.org UK, Amazon UK) are built via
-   `BOOKSHOP_AFFILIATE_ID` / `AMAZON_ASSOCIATE_TAG`; Kim still needs to add
-   them to her MCP config and confirm the Bookshop `/a/{id}/{isbn13}` link
-   resolves on uk.bookshop.org. IDs are never committed.
-5. Further sources, roughly easiest first:
+3. Check the unverified search-link patterns and add Kim's local library.
+   Affiliate links (Bookshop.org UK, Amazon UK) use `BOOKSHOP_AFFILIATE_ID` /
+   `AMAZON_ASSOCIATE_TAG`, marked "(affiliate link)" in output. IDs are never
+   committed. Affiliate rules: IDs must match `[\w-]+`; Amazon needs an ISBN-10
+   (no 979 ISBNs); a user `links.json` isbnUrl overrides the affiliate URL.
+4. Further sources, roughly easiest first:
    - Local libraries.
    - WorldCat and ISBNdb need paid or institutional keys.
    - Biblio, Bookshop.org UK and World of Books have no public API found.
      Check terms before any scraping.
-6. Optional: publish to npm so `npx` works.
+5. Optional: publish to npm so `npx` works.
+6. Decisions for Kim, from the citation work: one written spec with worked
+   examples for the house formats (smush, TASL, Wikipedia; smush exists three
+   times elsewhere in her tools); Python route for standard styles (Node
+   wrapper preferred; citeproc-py is weaker on Chicago and MLA). Findings in
+   `~/Development/_development-notes/md-tools-pkim/_citation-engines-findings.md`.
 
 ## Things to look out for
 

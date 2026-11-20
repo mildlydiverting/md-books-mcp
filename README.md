@@ -86,7 +86,7 @@ Open Library works with no setup. Google Books needs an API key. Keyless request
 
 ```bash
 npm install && npm run build
-claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -- node "$(pwd)/dist/index.js"
+claude mcp add books -e GOOGLE_BOOKS_API_KEY=your-key -e HARDCOVER_API_KEY=your-key -e BOOKSHOP_AFFILIATE_ID=your-bookshop-id -e AMAZON_ASSOCIATE_TAG=yourname-21 -- node "$(pwd)/dist/index.js"
 ```
 
 (Run that from the project folder: `$(pwd)` fills in the full path to `dist/index.js`.)
@@ -99,13 +99,18 @@ Claude Desktop (`claude_desktop_config.json`). Use the full path to `dist/index.
     "books": {
       "command": "node",
       "args": ["/path/to/md-books-mcp/dist/index.js"],
-      "env": { "GOOGLE_BOOKS_API_KEY": "your-key", "HARDCOVER_API_KEY": "your-key" }
+      "env": {
+        "GOOGLE_BOOKS_API_KEY": "your-key",
+        "HARDCOVER_API_KEY": "your-key",
+        "BOOKSHOP_AFFILIATE_ID": "your-bookshop-id",
+        "AMAZON_ASSOCIATE_TAG": "yourname-21"
+      }
     }
   }
 }
 ```
 
-All the variables you can set are listed in [`.env.example`](.env.example). The server does not read a `.env` file, so the `env` block above is the simplest route: it works on any machine and needs nothing else installed. The catch is that your keys then sit in plain text in that config file, so don't commit or share it. If you'd rather not, load the values from a secret store (on macOS, the Keychain) in a small launcher script and point `command` at that script. Never put real values in this repo.
+The two affiliate entries and the Hardcover key are optional: leave out any you don't have. All the variables you can set are listed in [`.env.example`](.env.example). The server does not read a `.env` file, so the `env` block above is the simplest route: it works on any machine and needs nothing else installed. The catch is that your keys then sit in plain text in that config file, so don't commit or share it. If you'd rather not, load the values from a secret store (on macOS, the Keychain) in a small launcher script and point `command` at that script. Never put real values in this repo.
 
 Try it with the Inspector: `npm run inspect`.
 
@@ -136,7 +141,7 @@ If you have affiliate IDs, set them as environment variables and the matching li
 | `BOOKSHOP_AFFILIATE_ID` | The Bookshop.org (UK) ISBN link becomes `https://uk.bookshop.org/a/{id}/{isbn13}`. Title searches stay plain. |
 | `AMAZON_ASSOCIATE_TAG` | Adds an Amazon UK link, `https://www.amazon.co.uk/dp/{isbn10}?tag={tag}` (ISBN-10 only, so 979 ISBNs get none). Use a tag registered for amazon.co.uk. |
 
-IDs may contain letters, numbers, `_` and `-` only. Affiliate links are marked ★ in the output with a reminder to say so when you share them (both programmes expect disclosure). In the markdown citation, `isbn_link_site: "bookshop-uk"` or `"amazon-uk"` uses the affiliate link. These are public IDs rather than secrets, but keep your own out of the repo: set them in your MCP client config or launcher. The Bookshop.org link format comes from its affiliate material and has not been checked against every account, so open a link once to confirm it.
+IDs may contain letters, numbers, `_` and `-` only. Affiliate links are marked "(affiliate link)" in the output with a reminder to say so when you share them (both programmes expect disclosure). In the markdown citation, `isbn_link_site: "bookshop-uk"` or `"amazon-uk"` uses the affiliate link. These are public IDs rather than secrets, but keep your own out of the repo: set them in your MCP client config or launcher. The Bookshop.org link format comes from its affiliate material and has not been checked against every account, so open a link once to confirm it.
 
 ## Planned sources
 

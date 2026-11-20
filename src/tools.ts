@@ -169,8 +169,8 @@ export function registerTools(server: McpServer): void {
         if (links.length === 0) return fail("None of the selected sites can handle that input. Try an ISBN, or a title or author.");
         const lines = links.map((l) => `- [${l.name}](${l.url})${l.note ? ` — ${l.note}` : ""} · \`${l.id}\``);
         const note = warnings.length ? `\n\nLinks file: ${warnings.join(" ")}` : "";
-        const disclosure = links.some((l) => l.affiliate) ? `\n\nAffiliate links (marked ★) earn the user a small commission. Say so wherever you share them.` : "";
-        const marked = lines.map((line, i) => (links[i]!.affiliate ? `${line} ★` : line));
+        const disclosure = links.some((l) => l.affiliate) ? `\n\nLinks marked "(affiliate link)" earn the user a small commission. Say so wherever you share them.` : "";
+        const marked = lines.map((line, i) => (links[i]!.affiliate ? `${line} (affiliate link)` : line));
         return text(`${marked.join("\n")}${disclosure}${note}`, { links, warnings });
       }),
   );
