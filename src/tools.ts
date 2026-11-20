@@ -169,7 +169,9 @@ export function registerTools(server: McpServer): void {
         if (links.length === 0) return fail("None of the selected sites can handle that input. Try an ISBN, or a title or author.");
         const lines = links.map((l) => `- [${l.name}](${l.url})${l.note ? ` — ${l.note}` : ""} · \`${l.id}\``);
         const note = warnings.length ? `\n\nLinks file: ${warnings.join(" ")}` : "";
-        return text(`${lines.join("\n")}${note}`, { links, warnings });
+        const disclosure = links.some((l) => l.affiliate) ? `\n\nAffiliate links (marked ★) earn the user a small commission. Say so wherever you share them.` : "";
+        const marked = lines.map((line, i) => (links[i]!.affiliate ? `${line} ★` : line));
+        return text(`${marked.join("\n")}${disclosure}${note}`, { links, warnings });
       }),
   );
 
@@ -258,8 +260,10 @@ export function registerTools(server: McpServer): void {
           const wanted = isbn_link_site?.trim() || "biblio";
           const { sites } = loadSites();
           const site = sites.find((x) => x.id === wanted && x.isbnUrl);
-          if (isbn && site) isbnLink = buildLinks([site], { isbn })[0]?.url;
-          else if (isbn) warnings.push(`no ISBN search link for site "${wanted}", so the ISBN is plain text.`);
+          const link = isbn && site ? buildLinks([site], { isbn })[0] : undefined;
+          if (link) isbnLink = link.url;
+          if (link?.affiliate) warnings.push("the ISBN link is an affiliate link; say so wherever the citation is shared.");
+          else if (isbn && !link) warnings.push(`no ISBN search link for site "${wanted}", so the ISBN is plain text.`);
           if (!book.identifiers?.openlibrary_work) warnings.push("no Open Library work id on this record, so that part is left out. Look the book up by ISBN to get it.");
         }
         const citation = formatCitation(book, style, { isbnLink });

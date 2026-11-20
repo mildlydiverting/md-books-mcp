@@ -35,6 +35,48 @@ Sources are plugins. Open Library (no key) and Google Books (key needed) are bui
 
 Book searches without a `source` fan out to every available general source (not `wikidata`, `bookbrainz` or `crossref`). Author searches fan out to every source that has author records.
 
+## Install
+
+You need a Mac, Linux or Windows machine with [Node.js](https://nodejs.org) 20 or newer, and [Git](https://git-scm.com). To check Node, run `node --version`.
+
+1. Download the code:
+
+   ```bash
+   git clone https://github.com/mildlydiverting/md-books-mcp.git
+   ```
+
+2. Go into the folder:
+
+   ```bash
+   cd md-books-mcp
+   ```
+
+3. Install and build:
+
+   ```bash
+   npm install && npm run build
+   ```
+
+4. Check it works. The tests should all pass:
+
+   ```bash
+   npm test
+   ```
+
+5. Tell your AI app about it. Pick one:
+
+   - **Claude Code:** run this from inside the folder.
+
+     ```bash
+     claude mcp add books -- node "$(pwd)/dist/index.js"
+     ```
+
+   - **Claude Desktop:** open its config file (Settings, Developer, Edit Config) and add the `books` entry shown under *Setup* below. Use the full path to `dist/index.js`. Run `pwd` in the folder to get it.
+
+6. Restart the app, then ask it to run `list_sources`. Open Library should say **Available**.
+
+That is enough to search books and make citations with Open Library. For Google Books, Hardcover, affiliate links and the rest, add keys and IDs as described under *Setup*. If a step fails, the usual cause is Node being too old, or (Claude Desktop with nvm) `command` needing the full path to your node binary.
+
 ## Setup
 
 Open Library works with no setup. Google Books needs an API key. Keyless requests share a quota of zero, so they fail with a 429.
@@ -63,6 +105,8 @@ Claude Desktop (`claude_desktop_config.json`). Use the full path to `dist/index.
 }
 ```
 
+All the variables you can set are listed in [`.env.example`](.env.example). The server does not read a `.env` file, so the `env` block above is the simplest route: it works on any machine and needs nothing else installed. The catch is that your keys then sit in plain text in that config file, so don't commit or share it. If you'd rather not, load the values from a secret store (on macOS, the Keychain) in a small launcher script and point `command` at that script. Never put real values in this repo.
+
 Try it with the Inspector: `npm run inspect`.
 
 ## Adding a source
@@ -78,10 +122,21 @@ Tools, citations and the search fan-out pick it up with no other changes. A sour
 `find_elsewhere` fills in URL templates for sites that have no API, or that block scripts with a bot check (Biblio does). It never fetches the page, so there is no scraping and no extra request; you or an agent with a browser open the link.
 
 - With an ISBN, a site needs an `isbnUrl`. With a title, author or free text, it needs a `queryUrl`.
-- Templates can use `{isbn}`, `{title}`, `{author}` and `{query}` (title, author and free text joined). Values are URL-encoded.
+- Templates can use `{isbn}`, `{isbn10}`, `{isbn13}` (converted from whatever ISBN you give; a site is skipped if it cannot be), `{title}`, `{author}` and `{query}` (title, author and free text joined). Values are URL-encoded.
 - Built-in sites are in `src/lib/links.ts`. Patterns marked "unverified" were blocked to scripts, so check them once in a browser and correct them in your file if needed.
 
 To add or change sites, create `~/.config/md-books-mcp/links.json` (or point `MD_BOOKS_LINKS_FILE` at another path). Start from [`links.example.json`](links.example.json). An entry with a built-in `id` changes only the fields you give; a new `id` adds a site; `"disabled": true` hides one. A problem in the file is reported in the tool's output and the built-in sites still work. The file is read on each call, so edits apply without a restart.
+
+### Affiliate links (optional)
+
+If you have affiliate IDs, set them as environment variables and the matching links carry them. Nothing changes when they are unset.
+
+| Variable | Effect |
+| --- | --- |
+| `BOOKSHOP_AFFILIATE_ID` | The Bookshop.org (UK) ISBN link becomes `https://uk.bookshop.org/a/{id}/{isbn13}`. Title searches stay plain. |
+| `AMAZON_ASSOCIATE_TAG` | Adds an Amazon UK link, `https://www.amazon.co.uk/dp/{isbn10}?tag={tag}` (ISBN-10 only, so 979 ISBNs get none). Use a tag registered for amazon.co.uk. |
+
+IDs may contain letters, numbers, `_` and `-` only. Affiliate links are marked ★ in the output with a reminder to say so when you share them (both programmes expect disclosure). In the markdown citation, `isbn_link_site: "bookshop-uk"` or `"amazon-uk"` uses the affiliate link. These are public IDs rather than secrets, but keep your own out of the repo: set them in your MCP client config or launcher. The Bookshop.org link format comes from its affiliate material and has not been checked against every account, so open a link once to confirm it.
 
 ## Planned sources
 

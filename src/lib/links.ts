@@ -2,13 +2,14 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as z from "zod/v4";
+import { toIsbn10, toIsbn13 } from "./isbn.js";
 
 /**
  * Search links for sites that have no API (or whose API we cannot use): the server fills in
  * a URL template and hands back the link. Nothing is fetched, so there is no scraping, no
  * bot-check problem and no token cost; the person (or an agent with a browser) opens the link.
  *
- * Templates may use {isbn}, {title}, {author} and {query} (title and author together, or the
+ * Templates may use {isbn}, {isbn10}, {isbn13}, {title}, {author} and {query} (title and author together, or the
  * free text). Values are URL-encoded. Add or change sites in a JSON file; see README.
  */
 
@@ -20,6 +21,8 @@ export interface LinkSite {
   isbnUrl?: string;
   /** Used for title, author or free-text searches. */
   queryUrl?: string;
+  /** True when the URL carries the user's affiliate ID, so output can say so. */
+  affiliate?: boolean;
 }
 
 export interface LinkInput {
@@ -34,6 +37,7 @@ export interface SiteLink {
   name: string;
   note?: string;
   url: string;
+  affiliate?: boolean;
 }
 
 /** Built-in sites. Patterns marked unverified were blocked to scripts by a bot check, so confirm them in a browser. */
@@ -49,6 +53,52 @@ export const DEFAULT_SITES: LinkSite[] = [
   { id: "hardcover", name: "Hardcover", note: "Community catalogue and shelves (unverified pattern)", isbnUrl: "https://hardcover.app/search?q={isbn}", queryUrl: "https://hardcover.app/search?q={query}" },
   { id: "bookbrainz", name: "BookBrainz", note: "Open database; name search only", queryUrl: "https://bookbrainz.org/search?q={query}" },
 ];
+
+// --- affiliate IDs ------------------------------------------------------------------
+
+export const BOOKSHOP_AFFILIATE_ENV = "BOOKSHOP_AFFILIATE_ID";
+export const AMAZON_TAG_ENV = "AMAZON_ASSOCIATE_TAG";
+
+/**
+ * Opt-in affiliate links. With BOOKSHOP_AFFILIATE_ID set, the Bookshop.org (UK) ISBN link becomes
+ * an affiliate link; with AMAZON_ASSOCIATE_TAG set, an Amazon UK site is added. Nothing is added
+ * when they are unset. IDs are checked so they cannot break out of the URL. Exported for tests.
+ */
+export function withAffiliates(
+  defaults: LinkSite[],
+  env: Record<string, string | undefined> = process.env,
+): { sites: LinkSite[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const valid = (name: string): string | undefined => {
+    const v = env[name]?.trim();
+    if (!v) return undefined;
+    if (!/^[\w-]+$/.test(v)) {
+      warnings.push(`${name} ignored: letters, numbers, _ and - only.`);
+      return undefined;
+    }
+    return v;
+  };
+  const sites = defaults.map((s) => ({ ...s }));
+  const bookshop = valid(BOOKSHOP_AFFILIATE_ENV);
+  if (bookshop) {
+    const site = sites.find((s) => s.id === "bookshop-uk");
+    if (site) {
+      site.isbnUrl = `https://uk.bookshop.org/a/${bookshop}/{isbn13}`;
+      site.affiliate = true;
+    }
+  }
+  const amazon = valid(AMAZON_TAG_ENV);
+  if (amazon) {
+    sites.push({
+      id: "amazon-uk",
+      name: "Amazon UK",
+      note: "New and used; ISBN links only",
+      isbnUrl: `https://www.amazon.co.uk/dp/{isbn10}?tag=${amazon}`,
+      affiliate: true,
+    });
+  }
+  return { sites, warnings };
+}
 
 // --- user file --------------------------------------------------------------------
 
@@ -107,6 +157,8 @@ export function mergeSites(json: string | undefined, defaults: LinkSite[] = DEFA
         note: entry.note ?? base?.note,
         isbnUrl: entry.isbnUrl ?? base?.isbnUrl,
         queryUrl: entry.queryUrl ?? base?.queryUrl,
+        // A user-supplied URL replaces the affiliate one, so the flag only survives if they did not change isbnUrl.
+        affiliate: entry.isbnUrl ? undefined : base?.affiliate,
       };
       if (!site.isbnUrl && !site.queryUrl) {
         warnings.push(`site "${entry.id}" has neither isbnUrl nor queryUrl, so it was skipped.`);
@@ -120,6 +172,7 @@ export function mergeSites(json: string | undefined, defaults: LinkSite[] = DEFA
 
 /** Read the user's links file, if there is one. Called on each use so edits apply without a restart. */
 export function loadSites(): LoadedSites {
+  const aff = withAffiliates(DEFAULT_SITES);
   const path = process.env[LINKS_FILE_ENV]?.trim() || defaultLinksFile();
   let json: string | undefined;
   try {
@@ -127,11 +180,12 @@ export function loadSites(): LoadedSites {
   } catch (err) {
     // A missing file is normal. Any other read problem is worth a warning.
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      const loaded = mergeSites(undefined);
-      return { ...loaded, warnings: [`could not read ${path}: ${(err as Error).message}`] };
+      const loaded = mergeSites(undefined, aff.sites);
+      return { ...loaded, warnings: [...aff.warnings, `could not read ${path}: ${(err as Error).message}`] };
     }
   }
-  return mergeSites(json);
+  const loaded = mergeSites(json, aff.sites);
+  return { ...loaded, warnings: [...aff.warnings, ...loaded.warnings] };
 }
 
 // --- expansion ----------------------------------------------------------------------
@@ -141,6 +195,8 @@ const enc = encodeURIComponent;
 /** Fill a template. Unused placeholders become empty strings. Exported for tests. */
 export function fillTemplate(template: string, values: { isbn: string; title: string; author: string; query: string }): string {
   return template
+    .replaceAll("{isbn13}", enc(toIsbn13(values.isbn)))
+    .replaceAll("{isbn10}", enc(toIsbn10(values.isbn)))
     .replaceAll("{isbn}", enc(values.isbn))
     .replaceAll("{title}", enc(values.title))
     .replaceAll("{author}", enc(values.author))
@@ -164,7 +220,9 @@ export function buildLinks(sites: LinkSite[], input: LinkInput): SiteLink[] {
     // A site only gets an ISBN link if it has an isbnUrl: a title search form may not understand ISBNs.
     const template = isbn && site.isbnUrl ? site.isbnUrl : hasText ? site.queryUrl : undefined;
     if (!template) continue;
-    links.push({ id: site.id, name: site.name, note: site.note, url: fillTemplate(template, values) });
+    // Skip when the ISBN cannot be converted (for example Amazon needs an ISBN-10, which 979 ISBNs lack).
+    if ((template.includes("{isbn13}") && !toIsbn13(isbn)) || (template.includes("{isbn10}") && !toIsbn10(isbn))) continue;
+    links.push({ id: site.id, name: site.name, note: site.note, url: fillTemplate(template, values), ...(site.affiliate && template === site.isbnUrl ? { affiliate: true } : {}) });
   }
   return links;
 }

@@ -416,6 +416,48 @@ describe("search links", async () => {
   });
 });
 
+describe("affiliate links", async () => {
+  const { DEFAULT_SITES, buildLinks, withAffiliates, mergeSites } = await import("../src/lib/links.js");
+  const { toIsbn10, toIsbn13 } = await import("../src/lib/isbn.js");
+  it("converts between ISBN-10 and ISBN-13", () => {
+    expect(toIsbn13("0060125632")).toBe("9780060125639");
+    expect(toIsbn10("9780060125639")).toBe("0060125632");
+    expect(toIsbn10(toIsbn13("0-306-40615-2"))).toBe("0306406152");
+    expect(toIsbn10("9791034300000")).toBe(""); // 979 has no ISBN-10
+    expect(toIsbn13("1234567890")).toBe(""); // bad checksum
+  });
+  it("changes nothing when no IDs are set", () => {
+    const { sites, warnings } = withAffiliates(DEFAULT_SITES, {});
+    expect(sites).toEqual(DEFAULT_SITES);
+    expect(warnings).toEqual([]);
+  });
+  it("makes Bookshop and Amazon links from the IDs", () => {
+    const { sites } = withAffiliates(DEFAULT_SITES, { BOOKSHOP_AFFILIATE_ID: "12345", AMAZON_ASSOCIATE_TAG: "example-21" });
+    const links = buildLinks(sites, { isbn: "9781035021048" });
+    const byId = Object.fromEntries(links.map((l) => [l.id, l]));
+    expect(byId["bookshop-uk"]?.url).toBe("https://uk.bookshop.org/a/12345/9781035021048");
+    expect(byId["bookshop-uk"]?.affiliate).toBe(true);
+    expect(byId["amazon-uk"]?.url).toMatch(/^https:\/\/www\.amazon\.co\.uk\/dp\/[\dX]{10}\?tag=example-21$/);
+    expect(byId.biblio?.affiliate).toBeUndefined();
+  });
+  it("keeps the plain Bookshop search for text queries, and skips Amazon without an ISBN-10", () => {
+    const { sites } = withAffiliates(DEFAULT_SITES, { BOOKSHOP_AFFILIATE_ID: "12345", AMAZON_ASSOCIATE_TAG: "example-21" });
+    const text = buildLinks(sites, { title: "The Dispossessed" });
+    expect(text.find((l) => l.id === "bookshop-uk")?.affiliate).toBeUndefined();
+    expect(text.some((l) => l.id === "amazon-uk")).toBe(false);
+    expect(buildLinks(sites, { isbn: "9791034300000".slice(0, 12) + "0" }).some((l) => l.id === "amazon-uk")).toBe(false);
+  });
+  it("rejects IDs that could alter the URL", () => {
+    const { sites, warnings } = withAffiliates(DEFAULT_SITES, { BOOKSHOP_AFFILIATE_ID: "1/../x", AMAZON_ASSOCIATE_TAG: "a&b=c" });
+    expect(sites).toEqual(DEFAULT_SITES);
+    expect(warnings).toHaveLength(2);
+  });
+  it("lets a user file override the affiliate URL", () => {
+    const { sites } = mergeSites(JSON.stringify([{ id: "bookshop-uk", isbnUrl: "https://example.org/{isbn}" }]), withAffiliates(DEFAULT_SITES, { BOOKSHOP_AFFILIATE_ID: "12345" }).sites);
+    expect(buildLinks(sites, { isbn: "9780060125639" }).find((l) => l.id === "bookshop-uk")?.affiliate).toBeUndefined();
+  });
+});
+
 describe("wikipedia, CSL-JSON and markdown citations", () => {
   const base = {
     source: "openlibrary",

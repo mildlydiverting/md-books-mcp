@@ -62,6 +62,10 @@ Suggested order. Kim approves each step before it starts.
 3. Tune the results: Hardcover returns junk such as study guides, and the
    fan-out merge is a plain concatenation with no de-duplication across sources.
 4. Check the unverified search-link patterns and add Kim's local library.
+   Affiliate links (Bookshop.org UK, Amazon UK) are built via
+   `BOOKSHOP_AFFILIATE_ID` / `AMAZON_ASSOCIATE_TAG`; Kim still needs to add
+   them to her MCP config and confirm the Bookshop `/a/{id}/{isbn13}` link
+   resolves on uk.bookshop.org. IDs are never committed.
 5. Further sources, roughly easiest first:
    - Local libraries.
    - WorldCat and ISBNdb need paid or institutional keys.
