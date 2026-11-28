@@ -2,6 +2,7 @@ import { getJson, HttpError } from "../lib/http.js";
 import { cleanIsbn } from "../lib/isbn.js";
 import { VERSION } from "../version.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 const BASE = "https://openlibrary.org";
 const COVERS = "https://covers.openlibrary.org/b/id";
@@ -76,7 +77,7 @@ interface OlAuthor {
 }
 
 function headers(): Record<string, string> {
-  const contact = process.env[CONTACT_ENV]?.trim();
+  const contact = readEnv(CONTACT_ENV);
   return { "User-Agent": `md-books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
 }
 

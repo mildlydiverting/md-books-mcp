@@ -4,6 +4,7 @@ import { toTwoLetterLanguage } from "../lib/lang.js";
 import { createPacer } from "../lib/pace.js";
 import { VERSION } from "../version.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 /**
  * BookBrainz: open (CC0) community book metadata from MetaBrainz. Strong on author
@@ -111,7 +112,7 @@ export function authorToAuthor(a: BbAuthor, ids?: BbIdentifiers): Author {
 }
 
 const headers = (): Record<string, string> => {
-  const contact = process.env[CONTACT_ENV]?.trim();
+  const contact = readEnv(CONTACT_ENV);
   return { "User-Agent": `md-books-mcp/${VERSION} (MCP server${contact ? `; ${contact}` : ""})` };
 };
 

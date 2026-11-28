@@ -62,6 +62,12 @@ You need [Node.js](https://nodejs.org) 20 or newer. To check, run `node --versio
 
 To add keys and affiliate IDs, see *Setup* below. If Claude Desktop can't find `npx`, see the note there.
 
+### Claude Desktop extension (one file, no terminal)
+
+For Claude Desktop you can skip the terminal and the config file. Download the latest `md-books-mcp-x.y.z.mcpb` from the [Releases page](https://github.com/mildlydiverting/md-books-mcp/releases), then drag it into Claude Desktop (Settings, Extensions) and click Install. Desktop shows a form for the optional keys and affiliate IDs, hides the keys, and keeps them in your computer's keychain. You do not need to install Node.
+
+To build the file yourself, run `npm run mcpb` from the source folder. It writes `md-books-mcp-<version>.mcpb` in the project folder, using the official [MCPB](https://github.com/modelcontextprotocol/mcpb) tool. The file is not signed, so Desktop may say it is from an unknown publisher.
+
 ### From source
 
 You also need [Git](https://git-scm.com).

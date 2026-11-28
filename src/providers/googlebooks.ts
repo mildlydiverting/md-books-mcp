@@ -1,6 +1,7 @@
 import { getJson, HttpError } from "../lib/http.js";
 import { cleanIsbn } from "../lib/isbn.js";
 import type { Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 const API_BASE = "https://www.googleapis.com/books/v1";
 const KEY_ENV = "GOOGLE_BOOKS_API_KEY";
@@ -32,7 +33,7 @@ interface GbList {
 }
 
 function apiKey(): string | undefined {
-  const key = process.env[KEY_ENV]?.trim();
+  const key = readEnv(KEY_ENV);
   return key ? key : undefined;
 }
 

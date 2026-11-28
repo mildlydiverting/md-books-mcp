@@ -501,3 +501,14 @@ describe("wikipedia, CSL-JSON and markdown citations", () => {
     expect(formatCitation(bare, "markdown")).toBe("Person, A. (n.d.) _Thing_.");
   });
 });
+
+describe("readEnv", async () => {
+  const { readEnv } = await import("../src/lib/env.js");
+  it("returns trimmed values and treats blank or unfilled placeholders as unset", () => {
+    expect(readEnv("A", { A: "  key  " })).toBe("key");
+    expect(readEnv("A", { A: "" })).toBeUndefined();
+    expect(readEnv("A", { A: "   " })).toBeUndefined();
+    expect(readEnv("A", {})).toBeUndefined();
+    expect(readEnv("A", { A: "${user_config.google_books_api_key}" })).toBeUndefined();
+  });
+});

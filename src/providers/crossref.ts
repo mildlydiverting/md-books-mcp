@@ -3,6 +3,7 @@ import { cleanIsbn, isValidIsbn10, isValidIsbn13 } from "../lib/isbn.js";
 import { createPacer } from "../lib/pace.js";
 import { VERSION } from "../version.js";
 import type { Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 /**
  * Crossref: DOI registry metadata. Strong on academic and university-press books
@@ -16,7 +17,7 @@ const BOOK_TYPES = ["book", "monograph", "edited-book", "reference-book"];
 const TYPE_FILTER = BOOK_TYPES.map((t) => `type:${t}`).join(",");
 const SELECT = "DOI,title,subtitle,author,editor,publisher,publisher-location,issued,ISBN,type,abstract,subject,URL";
 
-const contact = (): string | undefined => process.env[CONTACT_ENV]?.trim() || undefined;
+const contact = (): string | undefined => readEnv(CONTACT_ENV);
 // Public pool: about 1 request a second. Polite pool: considerably more.
 const paced = createPacer(() => (contact() ? 200 : 1100));
 

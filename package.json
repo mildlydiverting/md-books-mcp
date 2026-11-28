@@ -25,7 +25,8 @@
     "dev": "tsc --watch",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
     "prepublishOnly": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "mcpb": "scripts/pack-mcpb.sh"
   },
   "keywords": [
     "books",

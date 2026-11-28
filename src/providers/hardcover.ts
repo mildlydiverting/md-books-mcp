@@ -1,6 +1,7 @@
 import { HttpError, postJson } from "../lib/http.js";
 import { cleanIsbn } from "../lib/isbn.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 // Written from Hardcover's published docs (docs.hardcover.app); not yet run against the live API.
 
@@ -68,7 +69,7 @@ interface GqlResponse<T> {
 }
 
 function token(): string | undefined {
-  const raw = process.env[TOKEN_ENV]?.trim();
+  const raw = readEnv(TOKEN_ENV);
   // Accept the token pasted with or without its "Bearer " prefix.
   return raw ? raw.replace(/^Bearer\s+/i, "") : undefined;
 }

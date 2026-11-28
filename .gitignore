@@ -8,3 +8,5 @@ dist/
 _assets
 .venv/
 _notes
+.mcpb-build/
+*.mcpb

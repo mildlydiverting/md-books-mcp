@@ -1,13 +1,13 @@
 # Handoff: md-books-mcp
 
-Last updated 2026-11-20. Read this first, then `README.md`.
+Last updated 2026-11-25. Read this first, then `README.md`.
 
 ## Where we are
 
 A working server, run locally, that lets an AI assistant look up books and
 authors from several catalogues and write citations. It also makes shop links
 that can carry Kim's affiliate IDs. Seven catalogues are checked against live
-data. 76 tests pass. It is set up and working in Claude Code and Claude
+data. 77 tests pass. It is set up and working in Claude Code and Claude
 Desktop, and affiliate links were checked live in Desktop on 2026-11-20.
 
 **Published to npm as 0.1.0 on 2026-11-20** (Kim ran the publish). Next releases
@@ -55,6 +55,31 @@ Kim does these (they need her login). Run from the project folder.
 6. Update this file: remove the "not published" lines above.
 7. For later releases: raise `version` in `package.json` first. npm will not
    accept the same version twice.
+
+## Desktop extension (.mcpb)
+
+Built 2026-11-25, **not yet tested inside Claude Desktop and not yet released**.
+
+- Spec: https://github.com/modelcontextprotocol/mcpb (manifest version 0.3).
+  The Anthropic blog post's examples are out of date; follow the repo.
+- Files: `mcpb/manifest.json`, `mcpb/icon.png` (**placeholder: Kim to replace
+  with a 512x512 PNG**), `scripts/pack-mcpb.sh`. Run `npm run mcpb`.
+- The script checks the version matches in `package.json`, `mcpb/manifest.json`
+  and `src/version.ts`, builds, installs only runtime dependencies in a clean
+  `.mcpb-build/` folder, and packs `md-books-mcp-<version>.mcpb` (about 3 MB).
+  Both are gitignored. Raise all three versions together for a release.
+- Settings form (`user_config`): Google Books key and Hardcover key (marked
+  sensitive, so Desktop keeps them in the OS keychain), Bookshop ID, Amazon tag,
+  one contact email shared by the four catalogues that accept one.
+- `src/lib/env.ts` `readEnv` treats blank values and unfilled `${...}`
+  placeholders as "not set", so an empty optional field is never sent as a key.
+  We have not seen what Desktop actually passes for an empty field.
+- Checked: `mcpb validate` passes; the unpacked archive was run over stdio with
+  placeholder values and the tools worked.
+- `privacy_policies` lists the catalogues' policy pages. Hardcover's page
+  blocks scripts, so Kim should click it once to confirm the address.
+- Not done: signing (needs a certificate; optional), submitting to Anthropic's
+  extension directory (form and review), attaching the file to a GitHub release.
 
 ## Idea: GitHub Actions (not started)
 

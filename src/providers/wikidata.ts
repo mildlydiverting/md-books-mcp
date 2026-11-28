@@ -1,6 +1,7 @@
 import { getJson, HttpError } from "../lib/http.js";
 import { VERSION } from "../version.js";
 import type { Author, Book, BookProvider, BookQuery } from "../types.js";
+import { readEnv } from "../lib/env.js";
 
 const API = "https://www.wikidata.org/w/api.php";
 const CONTACT_ENV = "WIKIDATA_CONTACT";
@@ -48,7 +49,7 @@ interface TimeValue {
 }
 
 function headers(): Record<string, string> {
-  const contact = process.env[CONTACT_ENV]?.trim();
+  const contact = readEnv(CONTACT_ENV);
   return { "User-Agent": `md-books-mcp/${VERSION}${contact ? ` (${contact})` : ""}` };
 }
 

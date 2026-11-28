@@ -1,0 +1,95 @@
+{
+  "manifest_version": "0.3",
+  "name": "md-books-mcp",
+  "display_name": "Books and citations",
+  "version": "0.1.0",
+  "description": "Look up books and authors, make citations, and get shop links, from Open Library, Library of Congress, Hardcover, Google Books and more.",
+  "long_description": "Find a book by title, author or ISBN and get its details from several free catalogues. Make a citation in APA, MLA, Chicago, Harvard, BibTeX, Wikipedia, CSL-JSON or a markdown house format. Get ready-made links to shops and libraries, optionally carrying your own Bookshop.org or Amazon affiliate ID. Open Library, the Library of Congress and the other free catalogues need no setup; Google Books and Hardcover need a free key.",
+  "author": {
+    "name": "Kim Plowright",
+    "url": "https://github.com/mildlydiverting"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mildlydiverting/md-books-mcp.git"
+  },
+  "homepage": "https://github.com/mildlydiverting/md-books-mcp#readme",
+  "support": "https://github.com/mildlydiverting/md-books-mcp/issues",
+  "documentation": "https://github.com/mildlydiverting/md-books-mcp#readme",
+  "license": "MIT",
+  "keywords": ["books", "isbn", "citations", "bibliography", "openlibrary", "obsidian"],
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "GOOGLE_BOOKS_API_KEY": "${user_config.google_books_api_key}",
+        "HARDCOVER_API_KEY": "${user_config.hardcover_api_key}",
+        "BOOKSHOP_AFFILIATE_ID": "${user_config.bookshop_affiliate_id}",
+        "AMAZON_ASSOCIATE_TAG": "${user_config.amazon_associate_tag}",
+        "OPENLIBRARY_CONTACT": "${user_config.contact}",
+        "CROSSREF_CONTACT": "${user_config.contact}",
+        "BOOKBRAINZ_CONTACT": "${user_config.contact}",
+        "WIKIDATA_CONTACT": "${user_config.contact}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "list_sources", "description": "Show which book catalogues can be used right now." },
+    { "name": "search_books", "description": "Search for books by title, author, ISBN or free text." },
+    { "name": "get_book", "description": "Get full details for one book." },
+    { "name": "search_authors", "description": "Search for authors by name." },
+    { "name": "get_author", "description": "Get full details for one author." },
+    { "name": "format_citation", "description": "Make a citation in APA, MLA, Chicago, Harvard, BibTeX, Wikipedia, CSL-JSON or markdown." },
+    { "name": "find_elsewhere", "description": "Get ready-made search links for shops and libraries, with optional affiliate IDs." }
+  ],
+  "user_config": {
+    "google_books_api_key": {
+      "type": "string",
+      "title": "Google Books API key (optional)",
+      "description": "A free key from Google Cloud Console (enable the Books API). Without it, Google Books is skipped and everything else still works.",
+      "sensitive": true,
+      "required": false
+    },
+    "hardcover_api_key": {
+      "type": "string",
+      "title": "Hardcover API key (optional)",
+      "description": "From your Hardcover account: Settings, Hardcover API. Without it, Hardcover is skipped.",
+      "sensitive": true,
+      "required": false
+    },
+    "bookshop_affiliate_id": {
+      "type": "string",
+      "title": "Bookshop.org affiliate ID (optional)",
+      "description": "Letters, numbers, - and _ only. If set, Bookshop.org (UK) links for an ISBN carry your ID and are labelled as affiliate links.",
+      "required": false
+    },
+    "amazon_associate_tag": {
+      "type": "string",
+      "title": "Amazon Associates tag for amazon.co.uk (optional)",
+      "description": "For example yourname-21. If set, an Amazon UK link is added, labelled as an affiliate link.",
+      "required": false
+    },
+    "contact": {
+      "type": "string",
+      "title": "Contact email or website (optional)",
+      "description": "Sent to the free catalogues (Open Library, Crossref, BookBrainz, Wikidata) so they can identify polite traffic. Some give faster limits when it is set.",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "runtimes": { "node": ">=20.0.0" }
+  },
+  "privacy_policies": [
+    "https://archive.org/about/terms.php",
+    "https://www.loc.gov/legal/",
+    "https://hardcover.app/privacy",
+    "https://policies.google.com/privacy",
+    "https://foundation.wikimedia.org/wiki/Policy:Privacy_policy",
+    "https://metabrainz.org/privacy",
+    "https://www.crossref.org/operations-and-sustainability/privacy/"
+  ]
+}

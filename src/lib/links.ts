@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import * as z from "zod/v4";
 import { toIsbn10, toIsbn13 } from "./isbn.js";
+import { readEnv } from "./env.js";
 
 /**
  * Search links for sites that have no API (or whose API we cannot use): the server fills in
@@ -70,7 +71,7 @@ export function withAffiliates(
 ): { sites: LinkSite[]; warnings: string[] } {
   const warnings: string[] = [];
   const valid = (name: string): string | undefined => {
-    const v = env[name]?.trim();
+    const v = readEnv(name, env);
     if (!v) return undefined;
     if (!/^[\w-]+$/.test(v)) {
       warnings.push(`${name} ignored: letters, numbers, _ and - only.`);
@@ -173,7 +174,7 @@ export function mergeSites(json: string | undefined, defaults: LinkSite[] = DEFA
 /** Read the user's links file, if there is one. Called on each use so edits apply without a restart. */
 export function loadSites(): LoadedSites {
   const aff = withAffiliates(DEFAULT_SITES);
-  const path = process.env[LINKS_FILE_ENV]?.trim() || defaultLinksFile();
+  const path = readEnv(LINKS_FILE_ENV) || defaultLinksFile();
   let json: string | undefined;
   try {
     json = readFileSync(path, "utf8");
